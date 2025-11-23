@@ -8,33 +8,52 @@ import CreateTaskScreen from '@/components/screens/create-task-screen';
 import ReportScreen from '@/components/screens/report-screen';
 import AnnouncementsScreen from '@/components/screens/announcements-screen';
 import WalletScreen from '@/components/screens/wallet-screen';
+import RulesScreen from '@/components/screens/rules-screen';
 
-type Screen = 'home' | 'tasks' | 'create' | 'report' | 'announcements' | 'wallet';
+type Screen = 'home' | 'tasks' | 'create' | 'report' | 'announcements' | 'wallet' | 'rules';
 
 export default function Page() {
   const [activeScreen, setActiveScreen] = useState<Screen>('home');
   const [isDark, setIsDark] = useState(false);
   
-  // Shuru me "Loading..." rahega, Guest User nahi dikhega
   const [user, setUser] = useState({
-    id: 'loading', 
-    name: 'Loading...', 
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop', // Default placeholder jab tak load na ho
+    id: 'guest',
+    name: 'Guest',
+    avatar: '', 
     balance: 2500.00,
     currency: 'Points'
   });
 
   useEffect(() => {
-    // Function to check and load Telegram data
+    const savedTheme = localStorage.getItem('theme');
+    let themeToApply = 'light'; 
+
+    if (savedTheme) {
+      themeToApply = savedTheme;
+    } else {
+      if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.colorScheme === 'dark') {
+        themeToApply = 'dark';
+      } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        themeToApply = 'dark';
+      }
+    }
+
+    if (themeToApply === 'dark') {
+      setIsDark(true);
+      document.documentElement.classList.add('dark');
+    } else {
+      setIsDark(false);
+      document.documentElement.classList.remove('dark');
+    }
+
     const loadTelegramData = () => {
       if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp) {
         const tg = (window as any).Telegram.WebApp;
         tg.ready();
-        tg.expand(); // App ko full screen karne ke liye
-
+        tg.expand();
+        
         const tgUser = tg.initDataUnsafe?.user;
-
-        // Agar Telegram User mil gaya, to update karo
+        
         if (tgUser) {
           const fullName = `${tgUser.first_name || ''} ${tgUser.last_name || ''}`.trim();
           const finalName = fullName || tgUser.username || `User`;
@@ -42,44 +61,38 @@ export default function Page() {
           setUser(prev => ({
             ...prev,
             id: tgUser.id.toString(),
-            name: finalName, // Original Telegram Name
-            avatar: tgUser.photo_url || prev.avatar // Original Telegram Photo (agar hai to)
+            name: finalName,
+            avatar: tgUser.photo_url || ''
           }));
-        }
-
-        // Auto Theme Set Karna
-        if (tg.colorScheme === 'dark') {
-          setIsDark(true);
-          document.documentElement.classList.add('dark');
         }
       }
     };
 
-    // Try to load immediately
     loadTelegramData();
-
-    // Thoda wait karke dobara try karo (kyunki script load hone me 1 sec lag sakta hai)
     const timer = setTimeout(loadTelegramData, 1000);
-
-    // Fallback theme check for browser
-    const saved = localStorage.getItem('theme');
-    if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      setIsDark(true);
-      document.documentElement.classList.add('dark');
-    }
 
     return () => clearTimeout(timer);
   }, []);
 
   const toggleTheme = () => {
-    setIsDark(!isDark);
-    if (!isDark) {
+    const newTheme = !isDark;
+    setIsDark(newTheme);
+    if (newTheme) {
       document.documentElement.classList.add('dark');
       localStorage.setItem('theme', 'dark');
     } else {
       document.documentElement.classList.remove('dark');
       localStorage.setItem('theme', 'light');
     }
+  };
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   const renderScreen = () => {
@@ -96,6 +109,8 @@ export default function Page() {
         return <AnnouncementsScreen />;
       case 'wallet':
         return <WalletScreen user={user} />;
+      case 'rules':
+        return <RulesScreen />;
       default:
         return <HomeScreen user={user} isDark={isDark} onNavigate={setActiveScreen} />;
     }
@@ -103,7 +118,6 @@ export default function Page() {
 
   const navigationItems = [
     { id: 'home', label: 'Home', icon: Home },
-    { id: 'wallet', label: 'Wallet', icon: Wallet },
     { id: 'tasks', label: 'Tasks', icon: CheckSquare },
     { id: 'create', label: 'Create', icon: Plus },
     { id: 'report', label: 'Report', icon: Shield },
@@ -113,20 +127,22 @@ export default function Page() {
   return (
     <div className={isDark ? 'dark' : ''}>
       <div className="min-h-screen bg-background text-foreground flex flex-col">
-        {/* Header Section */}
         <header className="sticky top-0 z-40 border-b border-border bg-card shadow-sm">
           <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <img
-                src={user.avatar}
-                alt={user.name}
-                className="w-10 h-10 rounded-full ring-2 ring-blue-500 object-cover"
-              />
+              <div className="w-10 h-10 rounded-full ring-2 ring-blue-500 overflow-hidden flex items-center justify-center bg-blue-500 text-white font-bold text-sm">
+                {user.avatar ? (
+                  <img
+                    src={user.avatar}
+                    alt={user.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span>{getInitials(user.name)}</span>
+                )}
+              </div>
               <div className="flex flex-col justify-center">
-                <p className="font-bold text-sm">
-                  {/* Agar loading hai to 'Loading...' dikhega, warna Original Name */}
-                  {user.name}
-                </p>
+                <p className="font-bold text-sm">{user.name}</p>
                 <p className="text-xs text-muted-foreground">Balance: {user.balance.toFixed(2)}</p>
               </div>
             </div>
