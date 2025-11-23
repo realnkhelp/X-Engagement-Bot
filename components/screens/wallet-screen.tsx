@@ -48,7 +48,7 @@ export default function WalletScreen({ user }: WalletScreenProps) {
   return (
     <div className="px-4 py-6 space-y-6 pb-24">
       
-      {/* 1. Main Balance Card (Centered) */}
+      {/* 1. Main Balance Card (Centered - New Design) */}
       <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-8 text-white flex flex-col items-center justify-center text-center space-y-4 shadow-lg shadow-blue-500/20">
         <span className="text-sm opacity-90 font-medium tracking-wide">Total Balance</span>
         <div className="text-5xl font-bold tracking-tight">
@@ -64,7 +64,7 @@ export default function WalletScreen({ user }: WalletScreenProps) {
         </button>
       </div>
 
-      {/* 2. Assets Section (TON/USDT Real-time Style) */}
+      {/* 2. Assets Section (TON/USDT Real-time Style - New Design) */}
       <div className="space-y-3">
         <h3 className="text-sm font-semibold text-muted-foreground px-1">Assets</h3>
         {assets.map((asset) => (
@@ -104,7 +104,7 @@ export default function WalletScreen({ user }: WalletScreenProps) {
         ))}
       </div>
 
-      {/* 3. Tabs (Clean Style) */}
+      {/* 3. Tabs (Clean Style - New Design) */}
       <div className="flex gap-2 bg-muted p-1 rounded-xl">
         <button
           onClick={() => setActiveTab('deposit')}
@@ -128,7 +128,7 @@ export default function WalletScreen({ user }: WalletScreenProps) {
         </button>
       </div>
 
-      {/* 4. History Lists */}
+      {/* 4. History Lists (New Design) */}
       <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
         
         {activeTab === 'deposit' && depositHistory.map((item) => (
@@ -172,52 +172,46 @@ export default function WalletScreen({ user }: WalletScreenProps) {
         ))}
       </div>
 
-      {/* 5. Payment Modal (Old Logic Preserved) */}
+      {/* 5. Payment Modal (OLD DESIGN RESTORED) */}
       {showPaymentModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end z-50">
-          <div className="w-full bg-card rounded-t-3xl p-6 space-y-6 animate-in slide-in-from-bottom duration-300 max-w-md mx-auto border-t border-border">
+        <div className="fixed inset-0 bg-black/50 flex items-end z-50 max-w-md mx-auto">
+          <div className="w-full bg-card rounded-t-2xl p-6 space-y-4 animate-in">
             <div className="flex items-center justify-between">
-              <h2 className="font-bold text-xl">Select Payment Method</h2>
+              <h2 className="font-bold text-lg">Select Payment Method</h2>
               <button
                 onClick={() => setShowPaymentModal(false)}
-                className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:bg-muted/80 transition"
+                className="text-muted-foreground hover:text-foreground p-1"
               >
                 ✕
               </button>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2">
               {['TON', 'USDT'].map((currency) => (
                 <button
                   key={currency}
                   onClick={() => setSelectedCurrency(currency as 'TON' | 'USDT')}
-                  className={`w-full p-4 rounded-xl border-2 transition-all font-semibold flex items-center justify-between ${
+                  className={`w-full p-3 rounded-lg border-2 transition font-semibold ${
                     selectedCurrency === currency
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-600'
-                      : 'border-border hover:border-blue-300'
+                      ? 'border-blue-500 bg-blue-500/10 text-blue-600'
+                      : 'border-border hover:border-blue-500'
                   }`}
                 >
-                  <span className="flex items-center gap-3">
-                    {/* Tiny Icon Logic */}
-                    <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-[10px]">
-                        {currency[0]}
-                    </span>
-                    {currency}
-                  </span>
-                  {selectedCurrency === currency && <div className="w-3 h-3 rounded-full bg-blue-500" />}
+                  {currency}
                 </button>
               ))}
             </div>
 
             {selectedCurrency && (
-              <button className="w-full py-4 rounded-xl bg-blue-600 text-white font-bold text-lg hover:bg-blue-700 shadow-lg shadow-blue-500/25 transition active:scale-95">
-                Pay with {selectedCurrency}
+              <button className="w-full py-3 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition">
+                {/* Changed Text: 0.55 PAY -> Deposit TON/USDT */}
+                Deposit {selectedCurrency}
               </button>
             )}
 
             <button
               onClick={() => setShowPaymentModal(false)}
-              className="w-full py-3 rounded-xl font-semibold text-muted-foreground hover:bg-muted transition"
+              className="w-full py-2 rounded-lg border border-border font-semibold hover:bg-muted transition"
             >
               Cancel
             </button>
