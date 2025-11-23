@@ -66,12 +66,12 @@ export default function AdminPayments() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Withdraw Methods</h1>
+        <h1 className="text-2xl font-bold">Deposit Methods</h1>
       </div>
 
       <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
         <div className="p-4 border-b border-border flex items-center justify-between">
-          <h2 className="font-bold text-lg">Withdrawal Methods</h2>
+          <h2 className="font-bold text-lg">Deposit Methods</h2>
           <button 
             onClick={openAddModal}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold text-sm flex items-center gap-2 hover:bg-blue-700 transition"
