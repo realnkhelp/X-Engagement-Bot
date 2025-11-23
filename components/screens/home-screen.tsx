@@ -1,4 +1,4 @@
-import { Bell, CheckSquare, Plus, Shield, FileText, Users } from 'lucide-react';
+import { Wallet, Bell, CheckSquare, Plus, Shield, FileText, Users } from 'lucide-react';
 import NavigationCard from '@/components/ui/navigation-card';
 
 type Screen = 'home' | 'tasks' | 'create' | 'report' | 'announcements' | 'rules' | 'wallet';
@@ -32,7 +32,7 @@ export default function HomeScreen({ user, isDark, onNavigate }: HomeScreenProps
       {/* Navigation Cards */}
       <div className="grid grid-cols-2 gap-4">
         <NavigationCard
-          icon={FileText}
+          icon={Wallet}
           label="Wallet"
           color="bg-blue-500"
           onClick={() => handleNavigate('wallet')}
