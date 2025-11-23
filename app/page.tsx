@@ -15,49 +15,60 @@ export default function Page() {
   const [activeScreen, setActiveScreen] = useState<Screen>('home');
   const [isDark, setIsDark] = useState(false);
   
-  // Default state initialization
+  // Shuru me "Loading..." rahega, Guest User nahi dikhega
   const [user, setUser] = useState({
-    id: '12345',
-    name: 'Loading...',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop',
-    balance: 2500.00, // Balance amount
+    id: 'loading', 
+    name: 'Loading...', 
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop', // Default placeholder jab tak load na ho
+    balance: 2500.00,
     currency: 'Points'
   });
 
   useEffect(() => {
-    // Telegram WebApp Logic
-    if (typeof window !== 'undefined') {
-      const tg = (window as any).Telegram?.WebApp;
-      if (tg) {
+    // Function to check and load Telegram data
+    const loadTelegramData = () => {
+      if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp) {
+        const tg = (window as any).Telegram.WebApp;
         tg.ready();
-        
+        tg.expand(); // App ko full screen karne ke liye
+
         const tgUser = tg.initDataUnsafe?.user;
-        
+
+        // Agar Telegram User mil gaya, to update karo
         if (tgUser) {
           const fullName = `${tgUser.first_name || ''} ${tgUser.last_name || ''}`.trim();
-          const finalName = fullName || tgUser.username || `User`; 
+          const finalName = fullName || tgUser.username || `User`;
           
           setUser(prev => ({
             ...prev,
             id: tgUser.id.toString(),
-            name: finalName,
-            avatar: tgUser.photo_url || prev.avatar
+            name: finalName, // Original Telegram Name
+            avatar: tgUser.photo_url || prev.avatar // Original Telegram Photo (agar hai to)
           }));
         }
 
-        const colorScheme = tg.colorScheme;
-        if (colorScheme === 'dark') {
-          setIsDark(true);
-          document.documentElement.classList.add('dark');
-        }
-      } else {
-        const saved = localStorage.getItem('theme');
-        if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        // Auto Theme Set Karna
+        if (tg.colorScheme === 'dark') {
           setIsDark(true);
           document.documentElement.classList.add('dark');
         }
       }
+    };
+
+    // Try to load immediately
+    loadTelegramData();
+
+    // Thoda wait karke dobara try karo (kyunki script load hone me 1 sec lag sakta hai)
+    const timer = setTimeout(loadTelegramData, 1000);
+
+    // Fallback theme check for browser
+    const saved = localStorage.getItem('theme');
+    if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      setIsDark(true);
+      document.documentElement.classList.add('dark');
     }
+
+    return () => clearTimeout(timer);
   }, []);
 
   const toggleTheme = () => {
@@ -112,9 +123,10 @@ export default function Page() {
                 className="w-10 h-10 rounded-full ring-2 ring-blue-500 object-cover"
               />
               <div className="flex flex-col justify-center">
-                {/* Name */}
-                <p className="font-bold text-sm">{user.name}</p>
-                {/* Balance Added Here */}
+                <p className="font-bold text-sm">
+                  {/* Agar loading hai to 'Loading...' dikhega, warna Original Name */}
+                  {user.name}
+                </p>
                 <p className="text-xs text-muted-foreground">Balance: {user.balance.toFixed(2)}</p>
               </div>
             </div>
@@ -127,12 +139,10 @@ export default function Page() {
           </div>
         </header>
 
-        {/* Main Content */}
         <main className="flex-1 overflow-auto max-w-md mx-auto w-full pb-20">
           {renderScreen()}
         </main>
 
-        {/* Bottom Navigation */}
         <nav className="fixed bottom-0 left-0 right-0 border-t border-border bg-card z-40 max-w-md mx-auto">
           <div className="flex items-center justify-around">
             {navigationItems.map((item) => {

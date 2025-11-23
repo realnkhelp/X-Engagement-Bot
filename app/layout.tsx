@@ -16,23 +16,6 @@ export const metadata: Metadata = {
     maximumScale: 1,
     userScalable: false,
   },
-  icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
-  },
 }
 
 export default function RootLayout({
@@ -42,6 +25,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        {/* Telegram WebApp Script - Ye sabse jaruri line hai */}
+        <script src="https://telegram.org/js/telegram-web-app.js" async></script>
+      </head>
       <body className={`font-sans antialiased`}>
         {children}
         <Analytics />
