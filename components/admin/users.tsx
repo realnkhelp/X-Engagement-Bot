@@ -1,12 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Edit2, Trash2, Lock, Unlock, Save } from 'lucide-react';
+import { Search, Edit, Lock, Unlock, X } from 'lucide-react';
 
 interface User {
   id: string;
   username: string;
-  avatar: string; // URL for user image
+  avatar: string;
   balance: number;
   joinDate: string;
   status: 'active' | 'blocked';
@@ -14,8 +14,10 @@ interface User {
 
 export default function AdminUsers() {
   const [searchTerm, setSearchTerm] = useState('');
-  
-  // Example Data - In real app, this comes from database
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [editBalance, setEditBalance] = useState('');
+
   const [users, setUsers] = useState<User[]>([
     {
       id: '6771879298',
@@ -28,7 +30,7 @@ export default function AdminUsers() {
     {
       id: '8220282293',
       username: 'Kiron Kumar',
-      avatar: '', // No image case
+      avatar: '',
       balance: 0.00,
       joinDate: '11/23/2025',
       status: 'active',
@@ -43,40 +45,44 @@ export default function AdminUsers() {
     },
   ]);
 
-  // Handle Search
   const filteredUsers = users.filter(user => 
     user.username.toLowerCase().includes(searchTerm.toLowerCase()) || 
     user.id.includes(searchTerm)
   );
 
-  // Toggle Block/Unblock
-  const toggleBlockUser = (id: string) => {
+  const toggleUserStatus = (id: string) => {
     setUsers(users.map(u =>
       u.id === id ? { ...u, status: u.status === 'active' ? 'blocked' : 'active' } : u
     ));
   };
 
-  // Handle Balance Change (Inline)
-  const handleBalanceChange = (id: string, newAmount: string) => {
-    const amount = parseFloat(newAmount);
-    if (!isNaN(amount)) {
-      setUsers(users.map(u => u.id === id ? { ...u, balance: amount } : u));
+  const openEditModal = (user: User) => {
+    setCurrentUser(user);
+    setEditBalance(user.balance.toString());
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdateBalance = () => {
+    if (currentUser) {
+      const newBalance = parseFloat(editBalance);
+      if (!isNaN(newBalance)) {
+        setUsers(users.map(u => u.id === currentUser.id ? { ...u, balance: newBalance } : u));
+        setIsEditModalOpen(false);
+        setCurrentUser(null);
+      }
     }
   };
 
-  // Helper for Initials (if no image)
   const getInitials = (name: string) => {
     return name.slice(0, 2).toUpperCase();
   };
 
   return (
-    <div className="space-y-6">
-      
-      {/* Header & Search */}
+    <div className="space-y-6 relative">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Users List</h1>
-          <p className="text-sm text-muted-foreground">Manage telegram users & balances</p>
+          <p className="text-sm text-muted-foreground">Manage users & balances</p>
         </div>
         
         <div className="relative w-full sm:w-72">
@@ -91,29 +97,26 @@ export default function AdminUsers() {
         </div>
       </div>
 
-      {/* Users Table */}
       <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
             <thead className="bg-muted text-muted-foreground font-semibold border-b border-border text-xs uppercase">
               <tr>
                 <th className="px-4 py-3">ID</th>
-                <th className="px-4 py-3">User</th>
-                <th className="px-4 py-3">Balance (USDT)</th>
-                <th className="px-4 py-3">Join Date</th>
-                <th className="px-4 py-3 text-right">Actions</th>
+                <th className="px-4 py-3">USER</th>
+                <th className="px-4 py-3">BALANCE</th>
+                <th className="px-4 py-3">JOIN DATE</th>
+                <th className="px-4 py-3">STATUS</th>
+                <th className="px-4 py-3 text-right">ACTION</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filteredUsers.map((user) => (
                 <tr key={user.id} className="hover:bg-muted/30 transition">
-                  
-                  {/* ID */}
                   <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
                     {user.id}
                   </td>
 
-                  {/* USER (Image + Name) */}
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold overflow-hidden shrink-0">
@@ -124,64 +127,59 @@ export default function AdminUsers() {
                         )}
                       </div>
                       <span className="font-semibold text-foreground">{user.username}</span>
-                      {user.status === 'blocked' && (
-                        <span className="px-1.5 py-0.5 rounded text-[10px] bg-red-100 text-red-600 font-bold">BLOCKED</span>
-                      )}
                     </div>
                   </td>
 
-                  {/* BALANCE (Editable) */}
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <input 
-                        type="number"
-                        step="0.01"
-                        value={user.balance}
-                        onChange={(e) => handleBalanceChange(user.id, e.target.value)}
-                        className="w-20 px-2 py-1 rounded border border-border bg-background text-sm focus:border-blue-500 focus:outline-none"
-                      />
-                    </div>
+                  <td className="px-4 py-3 font-medium">
+                    {user.balance.toFixed(4)} USDT
                   </td>
 
-                  {/* JOIN DATE */}
                   <td className="px-4 py-3 text-muted-foreground text-xs">
                     {user.joinDate}
                   </td>
 
-                  {/* ACTIONS */}
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${
+                      user.status === 'active' 
+                        ? 'bg-green-100 text-green-600' 
+                        : 'bg-red-100 text-red-600'
+                    }`}>
+                      {user.status}
+                    </span>
+                  </td>
+
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      {/* Block/Unblock */}
                       <button 
-                        onClick={() => toggleBlockUser(user.id)}
-                        title={user.status === 'active' ? 'Block User' : 'Unblock User'}
-                        className={`p-1.5 rounded-lg transition ${
-                          user.status === 'active' 
-                            ? 'text-gray-400 hover:text-red-500 hover:bg-red-50' 
-                            : 'text-red-500 bg-red-50 hover:bg-red-100'
+                        onClick={() => openEditModal(user)}
+                        className="flex items-center gap-1 px-2 py-1 rounded-md bg-blue-50 text-blue-600 hover:bg-blue-100 transition text-xs font-medium"
+                      >
+                        <Edit className="w-3 h-3" />
+                        Edit
+                      </button>
+
+                      <button 
+                        onClick={() => toggleUserStatus(user.id)}
+                        className={`flex items-center gap-1 px-2 py-1 rounded-md transition text-xs font-medium ${
+                          user.status === 'active'
+                            ? 'bg-yellow-50 text-yellow-600 hover:bg-yellow-100'
+                            : 'bg-green-50 text-green-600 hover:bg-green-100'
                         }`}
                       >
-                        {user.status === 'active' ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
-                      </button>
-
-                      {/* Edit Balance (Dummy Save for visual) */}
-                      <button 
-                        title="Update Balance"
-                        className="p-1.5 rounded-lg text-blue-500 hover:bg-blue-50 transition"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-
-                       {/* Delete */}
-                       <button 
-                        title="Delete User"
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition"
-                      >
-                        <Trash2 className="w-4 h-4" />
+                        {user.status === 'active' ? (
+                          <>
+                            <Lock className="w-3 h-3" />
+                            Block
+                          </>
+                        ) : (
+                          <>
+                            <Unlock className="w-3 h-3" />
+                            Active
+                          </>
+                        )}
                       </button>
                     </div>
                   </td>
-
                 </tr>
               ))}
             </tbody>
@@ -189,11 +187,57 @@ export default function AdminUsers() {
           
           {filteredUsers.length === 0 && (
              <div className="p-8 text-center text-muted-foreground text-sm">
-               No users found matching "{searchTerm}"
+               No users found.
              </div>
           )}
         </div>
       </div>
+
+      {isEditModalOpen && currentUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-card w-full max-w-sm rounded-lg shadow-lg border border-border animate-in fade-in zoom-in duration-200">
+            <div className="p-4 border-b border-border flex justify-between items-center">
+              <h3 className="font-bold text-lg">Edit User</h3>
+              <button onClick={() => setIsEditModalOpen(false)} className="text-muted-foreground hover:text-foreground">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-4 space-y-4">
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">User Name</p>
+                <p className="font-semibold text-base">{currentUser.username}</p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">Balance (USDT)</label>
+                <input
+                  type="number"
+                  value={editBalance}
+                  onChange={(e) => setEditBalance(e.target.value)}
+                  className="w-full p-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-border flex justify-end gap-2">
+              <button 
+                onClick={() => setIsEditModalOpen(false)}
+                className="px-4 py-2 rounded-lg border border-border hover:bg-muted transition text-sm font-medium"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleUpdateBalance}
+                className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition text-sm font-medium"
+              >
+                Update
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
