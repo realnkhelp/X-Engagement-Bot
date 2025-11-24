@@ -14,11 +14,10 @@ interface Deposit {
 }
 
 export default function AdminDepositHistory() {
-  // --- Mock Data ---
   const [deposits, setDeposits] = useState<Deposit[]>([
     {
       id: '1',
-      username: 'Bitget User',
+      username: '@bitget_user',
       amount: 500,
       method: 'USDT BEP20',
       transactionId: '53686885',
@@ -27,7 +26,7 @@ export default function AdminDepositHistory() {
     },
     {
       id: '2',
-      username: 'Binance Trader',
+      username: '@binance_trader',
       amount: 1200,
       method: 'USDT TRC20',
       transactionId: '519202493',
@@ -36,7 +35,7 @@ export default function AdminDepositHistory() {
     },
     {
       id: '3',
-      username: 'CryptoKing',
+      username: '@crypto_king',
       amount: 300,
       method: 'Metamask',
       transactionId: '0x22b55ccc53...',
@@ -45,7 +44,6 @@ export default function AdminDepositHistory() {
     },
   ]);
 
-  // --- Filter States ---
   const [filters, setFilters] = useState({
     username: '',
     method: '',
@@ -58,12 +56,10 @@ export default function AdminDepositHistory() {
     status: ''
   });
 
-  // --- Modal States ---
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [selectedDepositId, setSelectedDepositId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
 
-  // --- Handlers ---
   const handleApplyFilters = () => {
     setFilters(tempFilters);
   };
@@ -117,7 +113,6 @@ export default function AdminDepositHistory() {
     <div className="space-y-6 pb-20 p-4">
       <h1 className="text-2xl font-bold">Deposit History</h1>
 
-      {/* Filters Section */}
       <div className="bg-card border border-border rounded-xl p-5 shadow-sm space-y-4">
         <div className="flex items-center gap-2 mb-2 text-muted-foreground">
           <Filter className="w-4 h-4" />
@@ -153,7 +148,7 @@ export default function AdminDepositHistory() {
 
         <div className="flex gap-2 justify-end border-t border-border pt-4">
           <button
-                      onClick={handleResetFilters}
+            onClick={handleResetFilters}
             className="px-4 py-2 rounded-lg border border-border hover:bg-muted text-sm font-medium flex items-center gap-2 transition"
           >
             <RefreshCw className="w-3 h-3" /> Reset
@@ -167,11 +162,10 @@ export default function AdminDepositHistory() {
         </div>
       </div>
 
-      {/* Table Section */}
       <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
-            <thead className="bg-muted text-muted-foreground font-semibold border-b border-border text-xs uppercase">
+            <thead className="bg-muted text-muted-foreground font-semibold border-b border-border text-xs uppercase whitespace-nowrap">
               <tr>
                 <th className="px-4 py-3">Username</th>
                 <th className="px-4 py-3">Amount</th>
@@ -182,14 +176,13 @@ export default function AdminDepositHistory() {
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
-              {filteredDeposits.map((deposit) => (
+            <tbody className="divide-y divide-border whitespace-nowrap">
+                            {filteredDeposits.map((deposit) => (
                 <tr key={deposit.id} className="hover:bg-muted/30 transition">
-                  <td className="px-4 py-3 font-medium text-foreground">{deposit.username}</td>
+                  <td className="px-4 py-3 font-medium text-blue-500">{deposit.username}</td>
                   <td className="px-4 py-3 font-bold text-green-600">${deposit.amount}</td>
                   <td className="px-4 py-3 text-muted-foreground">{deposit.method}</td>
                   
-                  {/* Transaction ID Column */}
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2 font-mono text-xs bg-muted/50 w-fit px-2 py-1 rounded">
                        {deposit.transactionId}
@@ -201,7 +194,6 @@ export default function AdminDepositHistory() {
 
                   <td className="px-4 py-3 text-muted-foreground">{deposit.date}</td>
                   
-                  {/* Status Column */}
                   <td className="px-4 py-3">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize
                       ${deposit.status === 'approved' ? 'bg-green-100 text-green-700' : 
@@ -211,21 +203,29 @@ export default function AdminDepositHistory() {
                     </span>
                   </td>
 
-                  {/* Actions Column */}
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-2">
                       {deposit.status === 'pending' && (
                         <>
-                          <button onClick={() => handleApprove(deposit.id)} className="p-1 text-green-600 hover:bg-green-100 rounded">
-                            <CheckCircle className="w-4 h-4" />
+                          <button 
+                            onClick={() => handleApprove(deposit.id)} 
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition text-xs font-semibold"
+                          >
+                            <CheckCircle className="w-3.5 h-3.5" /> Approve
                           </button>
-                          <button onClick={() => openRejectModal(deposit.id)} className="p-1 text-red-600 hover:bg-red-100 rounded">
-                            <XCircle className="w-4 h-4" />
+                          <button 
+                            onClick={() => openRejectModal(deposit.id)} 
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition text-xs font-semibold"
+                          >
+                            <XCircle className="w-3.5 h-3.5" /> Reject
                           </button>
                         </>
                       )}
-                      <button onClick={() => handleDelete(deposit.id)} className="p-1 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded">
-                        <Trash2 className="w-4 h-4" />
+                      <button 
+                        onClick={() => handleDelete(deposit.id)} 
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-gray-600 bg-gray-100 hover:bg-red-100 hover:text-red-600 rounded-lg transition text-xs font-semibold"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Delete
                       </button>
                     </div>
                   </td>
@@ -242,7 +242,6 @@ export default function AdminDepositHistory() {
         </div>
       </div>
 
-      {/* Reject Modal */}
       {isRejectModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-card w-full max-w-md p-6 rounded-xl shadow-lg border border-border">

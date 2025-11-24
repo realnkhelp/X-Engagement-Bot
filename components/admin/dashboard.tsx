@@ -67,7 +67,7 @@ export default function AdminDashboard({ onNavigate }: DashboardProps) {
       value: '$12,450',
       icon: DollarSign,
       color: 'bg-purple-500',
-      targetTab: 'payments'
+      targetTab: 'deposit-history'
     },
     {
       title: 'Payment Methods',

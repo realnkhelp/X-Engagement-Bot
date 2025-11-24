@@ -1,9 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Pencil, Trash2, Plus, Save, Power, Link as LinkIcon } from 'lucide-react';
+import { Pencil, Trash2, Plus, Save, Link as LinkIcon } from 'lucide-react';
 
-// Interface for Rule Data
 interface Rule {
   id: string;
   title: string;
@@ -13,7 +12,6 @@ interface Rule {
 }
 
 export default function RulesPage() {
-  // --- State Management ---
   const [rules, setRules] = useState<Rule[]>([
     {
       id: '1',
@@ -40,8 +38,6 @@ export default function RulesPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
 
-  // --- Handlers ---
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -53,7 +49,6 @@ export default function RulesPage() {
     if (!formData.title || !formData.description) return;
 
     if (isEditing && editId) {
-      // Update existing rule
       setRules(rules.map(rule => 
         rule.id === editId 
           ? { ...rule, ...formData } 
@@ -62,18 +57,16 @@ export default function RulesPage() {
       setIsEditing(false);
       setEditId(null);
     } else {
-      // Create new rule
       const newRule: Rule = {
         id: Date.now().toString(),
         title: formData.title,
         description: formData.description,
-        iconUrl: formData.iconUrl || 'https://cdn-icons-png.flaticon.com/128/1828/1828665.png', // Default icon
+        iconUrl: formData.iconUrl || 'https://cdn-icons-png.flaticon.com/128/1828/1828665.png',
         isActive: true
       };
       setRules([newRule, ...rules]);
     }
 
-    // Reset Form
     setFormData({ title: '', description: '', iconUrl: '' });
   };
 
@@ -109,7 +102,6 @@ export default function RulesPage() {
     <div className="p-4 space-y-8 pb-24">
       <h1 className="text-2xl font-bold">Manage Rules</h1>
 
-      {/* --- Create/Edit Form Section --- */}
       <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
           {isEditing ? <Pencil className="w-5 h-5 text-blue-500" /> : <Plus className="w-5 h-5 text-green-500" />}
@@ -118,7 +110,6 @@ export default function RulesPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Title Input */}
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">Rule Title</label>
               <input
@@ -132,7 +123,6 @@ export default function RulesPage() {
               />
             </div>
 
-            {/* Icon URL Input */}
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">Icon URL</label>
               <div className="flex gap-2">
@@ -147,7 +137,6 @@ export default function RulesPage() {
                     className="w-full p-2 pl-9 rounded-lg border border-border bg-background focus:ring-2 focus:ring-blue-500 outline-none"
                   />
                 </div>
-                {/* Icon Preview */}
                 {formData.iconUrl && (
                   <div className="w-10 h-10 rounded border border-border bg-muted flex items-center justify-center overflow-hidden shrink-0">
                     <img src={formData.iconUrl} alt="Preview" className="w-full h-full object-cover" />
@@ -157,7 +146,6 @@ export default function RulesPage() {
             </div>
           </div>
 
-          {/* Description Input */}
           <div className="space-y-1">
             <label className="text-xs font-medium text-muted-foreground">Description</label>
             <textarea
@@ -171,7 +159,6 @@ export default function RulesPage() {
             />
           </div>
 
-          {/* Form Actions */}
           <div className="flex justify-end gap-3 pt-2">
             {isEditing && (
               <button
@@ -194,10 +181,9 @@ export default function RulesPage() {
         </form>
       </div>
 
-      {/* --- Rules List (Table) --- */}
       <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
         <div className="p-4 border-b border-border bg-muted/30">
-          <h3 className="font-semibold">Existing Rules</h3>
+                    <h3 className="font-semibold">Existing Rules</h3>
         </div>
         
         <div className="overflow-x-auto">
@@ -208,13 +194,12 @@ export default function RulesPage() {
                 <th className="px-4 py-3 w-1/4">Title</th>
                 <th className="px-4 py-3">Description</th>
                 <th className="px-4 py-3 w-24 text-center">Status</th>
-                <th className="px-4 py-3 w-24 text-right">Actions</th>
+                <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {rules.map((rule) => (
                 <tr key={rule.id} className="hover:bg-muted/30 transition">
-                  {/* Icon */}
                   <td className="px-4 py-3 text-center">
                     <div className="w-10 h-10 mx-auto rounded-full bg-muted border border-border flex items-center justify-center overflow-hidden">
                       <img 
@@ -226,17 +211,14 @@ export default function RulesPage() {
                     </div>
                   </td>
 
-                  {/* Title */}
                   <td className="px-4 py-3 font-medium text-foreground">
                     {rule.title}
                   </td>
 
-                  {/* Description (Truncated) */}
                   <td className="px-4 py-3 text-muted-foreground">
                     <p className="line-clamp-2">{rule.description}</p>
                   </td>
 
-                  {/* Status Toggle */}
                   <td className="px-4 py-3 text-center">
                     <button
                       onClick={() => toggleStatus(rule.id)}
@@ -253,22 +235,23 @@ export default function RulesPage() {
                     </div>
                   </td>
 
-                  {/* Actions */}
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button 
                         onClick={() => handleEdit(rule)} 
-                        className="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded transition"
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition text-xs font-semibold"
                         title="Edit"
                       >
-                        <Pencil className="w-4 h-4" />
+                        <Pencil className="w-3.5 h-3.5" />
+                        Edit
                       </button>
                       <button 
                         onClick={() => handleDelete(rule.id)} 
-                        className="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition"
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition text-xs font-semibold"
                         title="Delete"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Delete
                       </button>
                     </div>
                   </td>

@@ -3,8 +3,6 @@
 import { useState } from 'react';
 import { Shield, UserPlus, Trash2, Pencil, Activity, Lock, Users, Clock, CheckCircle, XCircle } from 'lucide-react';
 
-// --- Types ---
-
 type Role = 'Super Admin' | 'Moderator';
 type Status = 'Active' | 'Blocked';
 
@@ -29,7 +27,6 @@ interface ActivityLog {
 export default function AdminManagementPage() {
   const [activeTab, setActiveTab] = useState<'admins' | 'logs'>('admins');
 
-  // --- Mock Data: Admins ---
   const [admins, setAdmins] = useState<Admin[]>([
     {
       id: '1',
@@ -49,7 +46,6 @@ export default function AdminManagementPage() {
     },
   ]);
 
-  // --- Mock Data: Activity Logs ---
   const [logs] = useState<ActivityLog[]>([
     {
       id: '101',
@@ -77,15 +73,12 @@ export default function AdminManagementPage() {
     },
   ]);
 
-  // --- Form State ---
   const [formData, setFormData] = useState({
     name: '',
     username: '',
     password: '',
     role: 'Moderator' as Role,
   });
-
-  // --- Handlers ---
 
   const handleCreateAdmin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,7 +118,6 @@ export default function AdminManagementPage() {
           Admin Management
         </h1>
         
-        {/* Tab Switcher */}
         <div className="bg-muted p-1 rounded-lg flex text-sm font-medium">
           <button
             onClick={() => setActiveTab('admins')}
@@ -146,11 +138,9 @@ export default function AdminManagementPage() {
         </div>
       </div>
 
-      {/* ==================== TAB 1: MANAGE ADMINS ==================== */}
       {activeTab === 'admins' && (
         <div className="space-y-8">
           
-          {/* Create Admin Form */}
           <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <UserPlus className="w-5 h-5 text-green-500" />
@@ -209,20 +199,21 @@ export default function AdminManagementPage() {
                 </select>
               </div>
 
-              <button type="submit" className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 text-sm font-medium transition">
-                Create Admin
-              </button>
+              <div className="md:col-span-2 lg:col-span-4 flex justify-end mt-4">
+                <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 text-sm font-medium transition shadow-sm">
+                  Create Admin
+                </button>
+              </div>
             </form>
           </div>
 
-          {/* Admin List Table */}
           <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
              <div className="p-4 border-b border-border bg-muted/30">
               <h3 className="font-semibold">All Admins</h3>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-left">
-                <thead className="bg-muted text-muted-foreground font-semibold border-b border-border text-xs uppercase">
+                <thead className="bg-muted text-muted-foreground font-semibold border-b border-border text-xs uppercase whitespace-nowrap">
                   <tr>
                     <th className="px-4 py-3">ID</th>
                     <th className="px-4 py-3">Name / Username</th>
@@ -232,7 +223,7 @@ export default function AdminManagementPage() {
                     <th className="px-4 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border">
+                <tbody className="divide-y divide-border whitespace-nowrap">
                   {admins.map((admin) => (
                     <tr key={admin.id} className="hover:bg-muted/30 transition">
                       <td className="px-4 py-3 font-mono text-xs text-muted-foreground">#{admin.id}</td>
@@ -260,11 +251,11 @@ export default function AdminManagementPage() {
                       <td className="px-4 py-3 text-muted-foreground text-xs">{admin.lastLogin}</td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex justify-end gap-2">
-                          <button className="p-1.5 text-blue-600 hover:bg-blue-100 rounded">
-                            <Pencil className="w-4 h-4" />
+                          <button className="flex items-center gap-1.5 px-3 py-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition text-xs font-semibold">
+                            <Pencil className="w-3.5 h-3.5" /> Edit
                           </button>
-                          <button onClick={() => handleDeleteAdmin(admin.id)} className="p-1.5 text-red-600 hover:bg-red-100 rounded">
-                            <Trash2 className="w-4 h-4" />
+                          <button onClick={() => handleDeleteAdmin(admin.id)} className="flex items-center gap-1.5 px-3 py-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition text-xs font-semibold">
+                            <Trash2 className="w-3.5 h-3.5" /> Delete
                           </button>
                         </div>
                       </td>
@@ -277,7 +268,6 @@ export default function AdminManagementPage() {
         </div>
       )}
 
-      {/* ==================== TAB 2: ACTIVITY LOGS ==================== */}
       {activeTab === 'logs' && (
         <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
           <div className="p-4 border-b border-border bg-muted/30 flex justify-between items-center">
@@ -287,7 +277,7 @@ export default function AdminManagementPage() {
           
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
-              <thead className="bg-muted text-muted-foreground font-semibold border-b border-border text-xs uppercase">
+              <thead className="bg-muted text-muted-foreground font-semibold border-b border-border text-xs uppercase whitespace-nowrap">
                 <tr>
                   <th className="px-4 py-3">Admin</th>
                   <th className="px-4 py-3">Date & Time</th>
@@ -296,13 +286,13 @@ export default function AdminManagementPage() {
                   <th className="px-4 py-3">Details</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <tbody className="divide-y divide-border whitespace-nowrap">
                 {logs.map((log) => (
                   <tr key={log.id} className="hover:bg-muted/30 transition">
                     <td className="px-4 py-3 font-medium text-blue-600">
                       {log.adminName}
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground text-xs whitespace-nowrap">
+                    <td className="px-4 py-3 text-muted-foreground text-xs">
                       <div className="flex items-center gap-1.5">
                         <Clock className="w-3 h-3" /> {log.date}
                       </div>

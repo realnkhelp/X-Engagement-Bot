@@ -6,8 +6,9 @@ import { Eye, CheckCircle, XCircle, Trash2, Ban, ExternalLink, X, AlertTriangle 
 interface Report {
   id: number;
   reporterName: string;
+  reporterUsername: string;
   reporterAvatar: string;
-  type: 'Spam' | 'Fake' | 'Abuse';
+  type: 'Cheating';
   message: string;
   status: 'Pending' | 'Resolved' | 'Rejected';
   date: string;
@@ -25,8 +26,9 @@ export default function AdminReports() {
     {
       id: 1,
       reporterName: 'Rahul Kumar',
+      reporterUsername: '@rahul_k',
       reporterAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Rahul',
-      type: 'Fake',
+      type: 'Cheating',
       message: 'User submitted a fake screenshot for the task.',
       status: 'Pending',
       date: '24 Nov 2025',
@@ -41,8 +43,9 @@ export default function AdminReports() {
     {
       id: 2,
       reporterName: 'Amit Verma',
+      reporterUsername: '@amit_v',
       reporterAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Amit',
-      type: 'Abuse',
+      type: 'Cheating',
       message: 'Using bad language in chat.',
       status: 'Resolved',
       date: '23 Nov 2025',
@@ -127,7 +130,6 @@ export default function AdminReports() {
               <tr>
                 <th className="px-4 py-3">User</th>
                 <th className="px-4 py-3">Type</th>
-                <th className="px-4 py-3">Message</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Date</th>
                 <th className="px-4 py-3 text-right">Actions</th>
@@ -137,22 +139,18 @@ export default function AdminReports() {
               {reports.map((report) => (
                 <tr key={report.id} className="hover:bg-muted/30 transition">
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <img src={report.reporterAvatar} alt="user" className="w-8 h-8 rounded-full bg-gray-200" />
-                      <span className="font-medium">{report.reporterName}</span>
+                    <div className="flex items-center gap-3">
+                      <img src={report.reporterAvatar} alt="user" className="w-10 h-10 rounded-full bg-gray-200 object-cover" />
+                      <div className="flex flex-col">
+                        <span className="font-bold text-foreground">{report.reporterName}</span>
+                        <span className="text-xs text-blue-500">{report.reporterUsername}</span>
+                      </div>
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`px-2 py-1 rounded text-xs font-bold border ${
-                      report.type === 'Spam' ? 'bg-orange-100 text-orange-700 border-orange-200' :
-                      report.type === 'Fake' ? 'bg-red-100 text-red-700 border-red-200' :
-                      'bg-purple-100 text-purple-700 border-purple-200'
-                    }`}>
+                    <span className="px-2 py-1 rounded text-xs font-bold bg-red-100 text-red-700 border border-red-200">
                       {report.type}
                     </span>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground max-w-xs truncate" title={report.message}>
-                    {report.message}
                   </td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -166,14 +164,23 @@ export default function AdminReports() {
                   <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{report.date}</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <button onClick={() => handleOpenModal(report)} className="p-1.5 text-blue-600 hover:bg-blue-100 rounded">
-                        <Eye className="w-4 h-4" />
+                      <button 
+                        onClick={() => handleOpenModal(report)} 
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition text-xs font-semibold"
+                      >
+                        <Eye className="w-3.5 h-3.5" /> View
                       </button>
-                      <button onClick={() => updateStatus(report.id, 'Resolved')} className="p-1.5 text-green-600 hover:bg-green-100 rounded">
-                        <CheckCircle className="w-4 h-4" />
+                      <button 
+                        onClick={() => updateStatus(report.id, 'Resolved')} 
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition text-xs font-semibold"
+                      >
+                        <CheckCircle className="w-3.5 h-3.5" /> Resolve
                       </button>
-                      <button onClick={() => handleDelete(report.id)} className="p-1.5 text-red-600 hover:bg-red-100 rounded">
-                        <Trash2 className="w-4 h-4" />
+                      <button 
+                        onClick={() => handleDelete(report.id)} 
+                                                className="flex items-center gap-1.5 px-3 py-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition text-xs font-semibold"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Delete
                       </button>
                     </div>
                   </td>
@@ -186,7 +193,7 @@ export default function AdminReports() {
 
       {isModalOpen && selectedReport && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                    <div className="bg-card w-full max-w-md rounded-2xl shadow-2xl border border-border overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="bg-card w-full max-w-md rounded-2xl shadow-2xl border border-border overflow-hidden flex flex-col max-h-[90vh]">
             
             <div className="p-4 border-b border-border flex justify-between items-center bg-muted/30">
               <h3 className="font-bold text-lg">Report Details</h3>
@@ -201,7 +208,7 @@ export default function AdminReports() {
                   <img src={selectedReport.reporterAvatar} alt="Reporter" className="w-10 h-10 rounded-full bg-white border" />
                   <div>
                     <p className="font-bold text-sm">{selectedReport.reporterName}</p>
-                    <p className="text-xs text-muted-foreground">Reported a {selectedReport.type} issue</p>
+                    <p className="text-xs text-blue-500">{selectedReport.reporterUsername}</p>
                   </div>
                 </div>
                 <div className="mt-2 text-sm bg-white p-2 rounded border border-blue-100 text-gray-700">

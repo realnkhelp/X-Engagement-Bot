@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Menu } from 'lucide-react';
+import { Menu, Lock, User } from 'lucide-react';
 import Sidebar from '@/components/layout/sidebar';
 import AdminDashboard from '@/components/admin/dashboard';
 import AdminUsers from '@/components/admin/users';
@@ -15,8 +15,21 @@ import AdminManageAdmins from '@/components/admin/manage-admins';
 import AdminReports from '@/components/admin/reports';
 
 export default function AdminPanel() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [usernameInput, setUsernameInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
+
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (usernameInput === 'admin' && passwordInput === 'admin123') {
+      setIsAuthenticated(true);
+    } else {
+      alert('Invalid Username or Password');
+    }
+  };
 
   const renderContent = () => {
     switch (activeTab) {
@@ -50,6 +63,58 @@ export default function AdminPanel() {
     email: 'admin@spck.com',
     avatar: '' 
   };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-orange-200 via-pink-200 to-red-300 p-4">
+        <div className="bg-white w-full max-w-md p-8 rounded-2xl shadow-2xl">
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-bold text-gray-800">Admin Login</h1>
+            <p className="text-gray-500 text-sm mt-2">Signin to Your Account</p>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Username</label>
+              <div className="relative">
+                <User className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                <input 
+                  type="text" 
+                  value={usernameInput}
+                  onChange={(e) => setUsernameInput(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                  placeholder="Enter Username"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Password</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                <input 
+                  type="password" 
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                  placeholder="Enter Password"
+                  required
+                />
+              </div>
+            </div>
+
+            <button 
+              type="submit" 
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition shadow-lg active:scale-95"
+            >
+              Sign In
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen w-full bg-background text-foreground overflow-hidden">
