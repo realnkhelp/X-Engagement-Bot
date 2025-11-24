@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Menu } from 'lucide-react';
 import Sidebar from '@/components/layout/sidebar';
 import AdminDashboard from '@/components/admin/dashboard';
 import AdminUsers from '@/components/admin/users';
@@ -51,8 +52,8 @@ export default function AdminPanel() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex overflow-hidden">
-      <div className="hidden md:flex h-screen sticky top-0">
+    <div className="flex h-screen w-full bg-background text-foreground overflow-hidden">
+      <div className="hidden md:flex flex-shrink-0 h-full w-64 border-r border-border bg-card">
         <Sidebar 
           user={user} 
           activeTab={activeTab} 
@@ -61,35 +62,39 @@ export default function AdminPanel() {
       </div>
 
       {isSidebarOpen && (
-        <div className="fixed inset-0 z-50 md:hidden flex">
-          <Sidebar 
-            user={user} 
-            activeTab={activeTab} 
-            setActiveTab={(tab) => {
-              setActiveTab(tab);
-              setIsSidebarOpen(false);
-            }} 
-            onClose={() => setIsSidebarOpen(false)}
-          />
-          <div className="flex-1 bg-black/50" onClick={() => setIsSidebarOpen(false)} />
+        <div className="fixed inset-0 z-50 flex md:hidden">
+          <div className="relative w-64 h-full bg-card shadow-2xl flex flex-col">
+            <Sidebar 
+              user={user} 
+              activeTab={activeTab} 
+              setActiveTab={(tab) => {
+                setActiveTab(tab);
+                setIsSidebarOpen(false);
+              }} 
+              onClose={() => setIsSidebarOpen(false)}
+            />
+          </div>
+          <div className="flex-1 bg-black/60 backdrop-blur-sm" onClick={() => setIsSidebarOpen(false)} />
         </div>
       )}
 
-      <main className="flex-1 h-screen overflow-auto bg-muted/10 w-full relative">
-        <div className="md:hidden p-4 border-b border-border bg-card flex items-center justify-between sticky top-0 z-20">
-          <h1 className="font-bold text-xl text-blue-600">Admin Panel</h1>
-          <button 
-            onClick={() => setIsSidebarOpen(true)}
-            className="p-2 rounded-md hover:bg-muted focus:outline-none"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-          </button>
+      <div className="flex-1 flex flex-col h-full overflow-hidden bg-muted/10 relative w-full">
+        <div className="md:hidden flex items-center justify-between p-4 bg-card border-b border-border shadow-sm flex-shrink-0 sticky top-0 z-20">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setIsSidebarOpen(true)}
+              className="p-2 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100 active:scale-95 transition"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+            <span className="font-bold text-lg text-foreground">Admin Panel</span>
+          </div>
         </div>
 
-        <div className="p-4 md:p-8 pb-24">
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 pb-24">
           {renderContent()}
         </div>
-      </main>
+      </div>
     </div>
   );
 }
