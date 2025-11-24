@@ -199,29 +199,52 @@ export default function CreateTaskScreen({ user }: CreateTaskScreenProps) {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold mb-2">Quantity</label>
-              <input
-                type="number"
-                min="10"
-                value={formData.quantity}
-                onChange={(e) => setFormData({ ...formData, quantity: e.target.value === "" ? 0 : parseInt(e.target.value) })}
-                className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold"
-              />
-            </div>
+  <label className="block text-sm font-semibold mb-2">Quantity</label>
+  <input
+    className={`w-full px-4 py-3 rounded-xl border bg-background text-foreground focus:outline-none focus:ring-2 font-bold ${
+      formData.quantity > 0 && formData.quantity < 10
+        ? "border-red-500 focus:ring-red-500 text-red-500"
+        : "border-border focus:ring-blue-500"
+    }`}
+    type="number"
+    placeholder="Minimum 10"
+    value={formData.quantity === 0 ? "" : formData.quantity}
+    onChange={(e) =>
+      setFormData({
+        ...formData,
+        quantity: e.target.value === "" ? 0 : parseInt(e.target.value),
+      })
+    }
+  />
+</div>
 
             <div className="pt-2 grid grid-cols-1 gap-3">
               <button
                 type="button"
-                onClick={() => setShowPointsModal(true)}
+                onClick={() => {
+                  const minLimit = 10;
+                  if (!formData.quantity || formData.quantity < minLimit) {
+                    alert(`Error: Minimum quantity required is ${minLimit}`);
+                    return;
+                  }
+                  setShowPointsModal(true);
+                }}
                 className="w-full py-3.5 rounded-xl bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold hover:opacity-90 transition flex items-center justify-center gap-2 shadow-lg shadow-orange-500/20"
               >
-                                <Coins className="w-5 h-5" />
+                <Coins className="w-5 h-5" />
                 Create with {calculateTotalPoints()} Points
               </button>
 
               <button
                 type="button"
-                onClick={() => setShowCryptoModal(true)}
+                onClick={() => {
+                  const minLimit = 10;
+                  if (!formData.quantity || formData.quantity < minLimit) {
+                    alert(`Error: Minimum quantity required is ${minLimit}`);
+                    return;
+                  }
+                  setShowCryptoModal(true);
+                }}
                 className="w-full py-3.5 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20"
               >
                 <Wallet className="w-5 h-5" />
