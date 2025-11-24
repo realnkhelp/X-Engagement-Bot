@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Save, Plus, Trash2, Edit2, AlertTriangle } from 'lucide-react';
+import { Save, Plus, Trash2, Edit2, AlertTriangle, Coins, Users, ThumbsUp } from 'lucide-react';
 
 interface Banner {
   id: number;
@@ -14,6 +14,13 @@ interface SupportLink {
   url: string;
 }
 
+interface TaskRate {
+  id: number;
+  category: 'Follow' | 'Engagement';
+  name: string;
+  price: number;
+}
+
 export default function AdminSettings() {
   const [settings, setSettings] = useState({
     currencyName: 'USDC',
@@ -21,6 +28,18 @@ export default function AdminSettings() {
     maintenanceMode: false,
     maintenanceDate: '',
     maintenanceMessage: 'We are currently undergoing scheduled maintenance.',
+  });
+
+  const [taskRates, setTaskRates] = useState<TaskRate[]>([
+    { id: 1, category: 'Follow', name: 'Twitter Follow', price: 0.0040 },
+    { id: 2, category: 'Engagement', name: 'Like', price: 0.0030 },
+    { id: 3, category: 'Engagement', name: 'Retweet', price: 0.0055 },
+  ]);
+
+  const [newTaskRate, setNewTaskRate] = useState<{ category: 'Follow' | 'Engagement'; name: string; price: string }>({
+    category: 'Engagement',
+    name: '',
+    price: ''
   });
 
   const [banners, setBanners] = useState<Banner[]>([
@@ -34,6 +53,25 @@ export default function AdminSettings() {
     { id: 2, title: 'Twitter', url: 'https://twitter.com/DefiTasker' },
   ]);
   const [newSupportLink, setNewSupportLink] = useState({ title: '', url: '' });
+
+  const addTaskRate = () => {
+    if (newTaskRate.name && newTaskRate.price) {
+      setTaskRates([
+        ...taskRates,
+        {
+          id: Date.now(),
+          category: newTaskRate.category,
+          name: newTaskRate.name,
+          price: parseFloat(newTaskRate.price)
+        }
+      ]);
+      setNewTaskRate({ ...newTaskRate, name: '', price: '' });
+    }
+  };
+
+  const deleteTaskRate = (id: number) => {
+    setTaskRates(taskRates.filter(r => r.id !== id));
+  };
 
   const addBanner = () => {
     if (newBannerUrl) {
@@ -77,6 +115,103 @@ export default function AdminSettings() {
             onChange={(e) => setSettings({...settings, currencyName: e.target.value})}
             className="w-full p-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+        </div>
+      </div>
+
+      <div className="bg-card border border-border rounded-xl p-6 space-y-6 shadow-sm">
+        <h2 className="text-lg font-bold border-b border-border pb-2 flex items-center gap-2">
+          <Coins className="w-5 h-5 text-yellow-500" />
+          Task Pricing & Rates (Price Per Action)
+        </h2>
+
+        <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-12 text-sm font-medium text-muted-foreground px-3">
+            <div className="col-span-3">Category</div>
+            <div className="col-span-5">Task Name</div>
+            <div className="col-span-3">Price (Per 1 Action)</div>
+            <div className="col-span-1">Action</div>
+          </div>
+
+          {taskRates.map((rate) => (
+            <div key={rate.id} className="grid grid-cols-12 items-center gap-2 p-3 border border-border rounded-lg bg-muted/30">
+              <div className="col-span-3">
+                <span className={`px-2 py-1 rounded text-xs font-medium flex w-fit items-center gap-1 ${
+                  rate.category === 'Follow' 
+                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' 
+                    : 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300'
+                }`}>
+                  {rate.category === 'Follow' ? <Users className="w-3 h-3" /> : <ThumbsUp className="w-3 h-3" />}
+                  {rate.category}
+                </span>
+              </div>
+              <div className="col-span-5 text-sm font-medium truncate">{rate.name}</div>
+              <div className="col-span-3 text-sm font-bold text-green-600 dark:text-green-400">
+                {rate.price.toFixed(4)}
+              </div>
+              <div className="col-span-1 text-right">
+                <button onClick={() => deleteTaskRate(rate.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded transition">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex flex-col gap-4 pt-4 border-t border-border">
+          <div className="flex gap-4">
+            <button
+              onClick={() => setNewTaskRate({ ...newTaskRate, category: 'Follow' })}
+              className={`flex-1 py-2 px-4 rounded-lg border font-medium flex items-center justify-center gap-2 transition ${
+                newTaskRate.category === 'Follow'
+                  ? 'bg-blue-500 text-white border-blue-600'
+                  : 'bg-muted text-muted-foreground border-transparent hover:bg-muted/80'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              Follow
+            </button>
+            <button
+              onClick={() => setNewTaskRate({ ...newTaskRate, category: 'Engagement' })}
+              className={`flex-1 py-2 px-4 rounded-lg border font-medium flex items-center justify-center gap-2 transition ${
+                newTaskRate.category === 'Engagement'
+                  ? 'bg-purple-500 text-white border-purple-600'
+                                    : 'bg-muted text-muted-foreground border-transparent hover:bg-muted/80'
+              }`}
+            >
+              <ThumbsUp className="w-4 h-4" />
+              Engagement
+            </button>
+          </div>
+
+          <div className="flex gap-2 items-end">
+            <div className="flex-1">
+              <label className="block text-xs font-medium mb-1 text-muted-foreground">Task Name (e.g., Like, Retweet)</label>
+              <input
+                type="text"
+                placeholder="Enter task name"
+                value={newTaskRate.name}
+                onChange={(e) => setNewTaskRate({...newTaskRate, name: e.target.value})}
+                className="w-full p-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              />
+            </div>
+            <div className="w-1/3">
+              <label className="block text-xs font-medium mb-1 text-muted-foreground">Price per Action</label>
+              <input
+                type="number"
+                step="0.0001"
+                placeholder="0.0050"
+                value={newTaskRate.price}
+                onChange={(e) => setNewTaskRate({...newTaskRate, price: e.target.value})}
+                className="w-full p-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              />
+            </div>
+            <button 
+              onClick={addTaskRate}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-1 transition"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
 
