@@ -1,29 +1,21 @@
 'use client';
 
 import { useState } from 'react';
-import { Settings, Users, Briefcase, DollarSign, BarChart3, LogOut } from 'lucide-react';
+import Sidebar from '@/components/layout/sidebar';
 import AdminDashboard from '@/components/admin/dashboard';
 import AdminUsers from '@/components/admin/users';
 import AdminTasks from '@/components/admin/tasks';
 import AdminPayments from '@/components/admin/payments';
 import AdminSettings from '@/components/admin/settings';
-
-type AdminTab = 'dashboard' | 'users' | 'tasks' | 'payments' | 'settings';
+import AdminDepositHistory from '@/components/admin/deposit-history';
+import AdminRules from '@/components/admin/rules';
+import AdminAnnouncement from '@/components/admin/announcement';
+import AdminManageAdmins from '@/components/admin/manage-admins';
+import AdminReports from '@/components/admin/reports';
 
 export default function AdminPanel() {
-  const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
-  const [isDark, setIsDark] = useState(false);
-
-  const toggleTheme = () => {
-    setIsDark(!isDark);
-    if (!isDark) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  };
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const renderContent = () => {
     switch (activeTab) {
@@ -33,8 +25,18 @@ export default function AdminPanel() {
         return <AdminUsers />;
       case 'tasks':
         return <AdminTasks />;
+      case 'deposit-history':
+        return <AdminDepositHistory />;
       case 'payments':
         return <AdminPayments />;
+      case 'rules':
+        return <AdminRules />;
+      case 'announcements':
+        return <AdminAnnouncement />;
+      case 'reports':
+        return <AdminReports />;
+      case 'manage-admins':
+        return <AdminManageAdmins />;
       case 'settings':
         return <AdminSettings />;
       default:
@@ -42,64 +44,52 @@ export default function AdminPanel() {
     }
   };
 
-  const tabs = [
-    { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-    { id: 'users', label: 'Users', icon: Users },
-    { id: 'tasks', label: 'Tasks', icon: Briefcase },
-    { id: 'payments', label: 'Payments', icon: DollarSign },
-    { id: 'settings', label: 'Settings', icon: Settings },
-  ];
+  const user = {
+    name: 'Nitesh Admin',
+    email: 'admin@spck.com',
+    avatar: '' 
+  };
 
   return (
-    <div className={isDark ? 'dark' : ''}>
-      <div className="min-h-screen bg-background text-foreground flex">
-        {/* Sidebar */}
-        <aside className="w-64 border-r border-border bg-card">
-          <div className="p-6 border-b border-border">
-            <h1 className="text-2xl font-bold text-blue-500">Admin Panel</h1>
-          </div>
-
-          <nav className="p-4 space-y-2">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as AdminTab)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${
-                    activeTab === tab.id
-                      ? 'bg-blue-500 text-white'
-                      : 'text-muted-foreground hover:bg-muted'
-                  }`}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span className="font-medium">{tab.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-
-          <div className="absolute bottom-4 left-4 right-4 flex gap-2">
-            <button
-              onClick={toggleTheme}
-              className="flex-1 py-2 rounded-lg bg-muted hover:bg-muted/80 transition text-sm font-medium"
-            >
-              {isDark ? 'Light' : 'Dark'}
-            </button>
-            <button className="flex-1 py-2 rounded-lg bg-destructive text-destructive-foreground hover:opacity-90 transition text-sm font-medium flex items-center justify-center gap-2">
-              <LogOut className="w-4 h-4" />
-              Logout
-            </button>
-          </div>
-        </aside>
-
-        {/* Main Content */}
-        <main className="flex-1 overflow-auto">
-          <div className="p-8">
-            {renderContent()}
-          </div>
-        </main>
+    <div className="min-h-screen bg-background text-foreground flex overflow-hidden">
+      <div className="hidden md:flex h-screen sticky top-0">
+        <Sidebar 
+          user={user} 
+          activeTab={activeTab} 
+          setActiveTab={setActiveTab} 
+        />
       </div>
+
+      {isSidebarOpen && (
+        <div className="fixed inset-0 z-50 md:hidden flex">
+          <Sidebar 
+            user={user} 
+            activeTab={activeTab} 
+            setActiveTab={(tab) => {
+              setActiveTab(tab);
+              setIsSidebarOpen(false);
+            }} 
+            onClose={() => setIsSidebarOpen(false)}
+          />
+          <div className="flex-1 bg-black/50" onClick={() => setIsSidebarOpen(false)} />
+        </div>
+      )}
+
+      <main className="flex-1 h-screen overflow-auto bg-muted/10 w-full relative">
+        <div className="md:hidden p-4 border-b border-border bg-card flex items-center justify-between sticky top-0 z-20">
+          <h1 className="font-bold text-xl text-blue-600">Admin Panel</h1>
+          <button 
+            onClick={() => setIsSidebarOpen(true)}
+            className="p-2 rounded-md hover:bg-muted focus:outline-none"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+        </div>
+
+        <div className="p-4 md:p-8 pb-24">
+          {renderContent()}
+        </div>
+      </main>
     </div>
   );
 }
