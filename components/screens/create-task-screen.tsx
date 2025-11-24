@@ -27,6 +27,7 @@ export default function CreateTaskScreen({ user }: CreateTaskScreenProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [showPointsModal, setShowPointsModal] = useState(false);
   const [showCryptoModal, setShowCryptoModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'TON' | 'USDT'>('USDT');
   const [expandedTaskId, setExpandedTaskId] = useState<number | null>(null);
   
@@ -34,7 +35,7 @@ export default function CreateTaskScreen({ user }: CreateTaskScreenProps) {
     category: 'Follow',
     title: '',
     link: '',
-    quantity: 100,
+    quantity: 10,
   });
 
   const tonPriceInUsd = 5.20; 
@@ -137,7 +138,7 @@ export default function CreateTaskScreen({ user }: CreateTaskScreenProps) {
       </div>
 
       {activeTab === 'add' && (
-        <div className="space-y-4 pb-4 animate-in fade-in slide-in-from-bottom-2">
+              <div className="space-y-4 pb-4 animate-in fade-in slide-in-from-bottom-2">
           <div className="bg-card border border-border rounded-xl p-4 space-y-4">
             
             <div className="relative">
@@ -145,7 +146,7 @@ export default function CreateTaskScreen({ user }: CreateTaskScreenProps) {
               <button
                 type="button"
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                                className="w-full px-4 py-3.5 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-between"
+                className="w-full px-4 py-3.5 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-between"
               >
                 <span className="font-medium">{formData.category}</span>
                 <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
@@ -199,24 +200,24 @@ export default function CreateTaskScreen({ user }: CreateTaskScreenProps) {
             </div>
 
             <div>
-  <label className="block text-sm font-semibold mb-2">Quantity</label>
-  <input
-    className={`w-full px-4 py-3 rounded-xl border bg-background text-foreground focus:outline-none focus:ring-2 font-bold ${
-      formData.quantity > 0 && formData.quantity < 10
-        ? "border-red-500 focus:ring-red-500 text-red-500"
-        : "border-border focus:ring-blue-500"
-    }`}
-    type="number"
-    placeholder="Minimum 10"
-    value={formData.quantity === 0 ? "" : formData.quantity}
-    onChange={(e) =>
-      setFormData({
-        ...formData,
-        quantity: e.target.value === "" ? 0 : parseInt(e.target.value),
-      })
-    }
-  />
-</div>
+              <label className="block text-sm font-semibold mb-2">Quantity</label>
+              <input
+                className={`w-full px-4 py-3 rounded-xl border bg-background text-foreground focus:outline-none focus:ring-2 font-bold ${
+                    formData.quantity > 0 && formData.quantity < 10
+                      ? "border-red-500 focus:ring-red-500 text-red-500"
+                      : "border-border focus:ring-blue-500"
+                  }`}
+                type="number"
+                placeholder="Minimum 10"
+                value={formData.quantity === 0 ? "" : formData.quantity}
+                onChange={(e) =>
+                    setFormData({
+                    ...formData,
+                    quantity: e.target.value === "" ? 0 : parseInt(e.target.value),
+                    })
+                }
+              />
+            </div>
 
             <div className="pt-2 grid grid-cols-1 gap-3">
               <button
@@ -224,12 +225,12 @@ export default function CreateTaskScreen({ user }: CreateTaskScreenProps) {
                 onClick={() => {
                   const minLimit = 10;
                   if (!formData.quantity || formData.quantity < minLimit) {
-                    alert(`Error: Minimum quantity required is ${minLimit}`);
+                    setShowErrorModal(true);
                     return;
                   }
                   setShowPointsModal(true);
                 }}
-                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold hover:opacity-90 transition flex items-center justify-center gap-2 shadow-lg shadow-orange-500/20"
+                                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold hover:opacity-90 transition flex items-center justify-center gap-2 shadow-lg shadow-orange-500/20"
               >
                 <Coins className="w-5 h-5" />
                 Create with {calculateTotalPoints()} Points
@@ -240,7 +241,7 @@ export default function CreateTaskScreen({ user }: CreateTaskScreenProps) {
                 onClick={() => {
                   const minLimit = 10;
                   if (!formData.quantity || formData.quantity < minLimit) {
-                    alert(`Error: Minimum quantity required is ${minLimit}`);
+                    setShowErrorModal(true);
                     return;
                   }
                   setShowCryptoModal(true);
@@ -258,7 +259,7 @@ export default function CreateTaskScreen({ user }: CreateTaskScreenProps) {
       {activeTab === 'my' && (
         <div className="space-y-4 pb-4">
           {myTasks.map((task) => {
-            const isCompleted = task.status === 'Closed';
+            const isFinished = task.completedCount >= task.quantity;
             
             return (
               <div key={task.id} className="bg-card border border-border rounded-xl p-4 shadow-sm space-y-4">
@@ -275,26 +276,26 @@ export default function CreateTaskScreen({ user }: CreateTaskScreenProps) {
                     <div>
                       <h3 className="font-bold text-lg leading-tight">Nitesh Kumar</h3>
                       
-                      {isCompleted ? (
+                      {isFinished ? (
                          <span className="text-green-600 font-bold text-sm">Completed</span>
                       ) : (
                          <span className="text-blue-600 font-bold text-sm">
-                           {task.completedCount}/{task.quantity}
+                           {task.completedCount}/{task.quantity} Progress
                          </span>
                       )}
                       
                       <p className="text-sm text-muted-foreground mt-1 font-medium">
-                        {task.taskId} {task.category}
+                        TASK ID: {task.taskId} {task.category}
                       </p>
                     </div>
                   </div>
 
                   <div className={`px-3 py-1 rounded-full text-xs font-bold ${
-                    isCompleted 
+                    isFinished 
                       ? 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400' 
                       : 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
                   }`}>
-                    {isCompleted ? 'Closed' : 'Open'}
+                    {isFinished ? 'Closed' : 'Open'}
                   </div>
                 </div>
 
@@ -343,7 +344,7 @@ export default function CreateTaskScreen({ user }: CreateTaskScreenProps) {
               <div className="w-16 h-16 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Coins className="w-8 h-8 text-yellow-600 dark:text-yellow-400" />
               </div>
-              <h2 className="font-bold text-xl">Confirm Points Payment</h2>
+                            <h2 className="font-bold text-xl">Confirm Points Payment</h2>
               <p className="text-muted-foreground text-sm">
                 You are about to deduct <span className="font-bold text-foreground">{calculateTotalPoints()} Points</span> from your balance to create this task.
               </p>
@@ -433,6 +434,27 @@ export default function CreateTaskScreen({ user }: CreateTaskScreenProps) {
               <Zap className="w-5 h-5 fill-current" />
               Pay Now
             </button>
+          </div>
+        </div>
+      )}
+
+      {showErrorModal && (
+        <div className="fixed inset-0 bg-black/60 z-[70] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-zinc-900 rounded-xl w-full max-w-[300px] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="p-6 text-center">
+              <h3 className="text-lg font-bold mb-2">Error</h3>
+              <p className="text-muted-foreground text-sm">
+                Minimum quantity required is 10
+              </p>
+            </div>
+            <div className="border-t border-border">
+              <button 
+                onClick={() => setShowErrorModal(false)}
+                className="w-full py-3 text-blue-600 font-bold text-base active:bg-gray-100 dark:active:bg-zinc-800 transition"
+              >
+                OK
+              </button>
+            </div>
           </div>
         </div>
       )}
