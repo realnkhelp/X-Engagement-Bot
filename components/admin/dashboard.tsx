@@ -3,11 +3,14 @@
 import { useState, useEffect } from 'react';
 import { 
   Users, Briefcase, DollarSign, FileText, 
-  CreditCard, Shield, Clock, TrendingUp, 
-  Sun, Moon 
+  CreditCard, Shield, Clock, Sun, Moon 
 } from 'lucide-react';
 
-export default function AdminDashboard() {
+interface DashboardProps {
+  onNavigate?: (tab: string) => void;
+}
+
+export default function AdminDashboard({ onNavigate }: DashboardProps) {
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
@@ -36,48 +39,56 @@ export default function AdminDashboard() {
       value: '1,234',
       icon: Users,
       color: 'bg-blue-500',
+      targetTab: 'users'
     },
     {
       title: 'Active Tasks',
       value: '456',
       icon: Briefcase,
       color: 'bg-green-500',
+      targetTab: 'tasks'
     },
     {
       title: 'Total Reports',
       value: '23',
       icon: FileText,
       color: 'bg-red-500',
+      targetTab: 'reports'
     },
     {
       title: 'Pending Deposits',
       value: '15',
       icon: Clock,
       color: 'bg-orange-500',
+      targetTab: 'deposit-history'
     },
     {
       title: 'Total Revenue',
       value: '$12,450',
       icon: DollarSign,
       color: 'bg-purple-500',
+      targetTab: 'payments'
     },
     {
       title: 'Payment Methods',
       value: '4',
       icon: CreditCard,
       color: 'bg-indigo-500',
+      targetTab: 'payments'
     },
     {
       title: 'Total Admins',
       value: '3',
       icon: Shield,
       color: 'bg-gray-600',
+      targetTab: 'manage-admins'
     },
     {
-      title: 'Verified Users',
+      title: 'Active Users',
       value: '892',
       icon: Users,
       color: 'bg-teal-500',
+      targetTab: 'users'
     },
   ];
 
@@ -109,7 +120,8 @@ export default function AdminDashboard() {
           return (
             <div
               key={idx}
-              className="bg-card border border-border rounded-xl p-6 space-y-3 shadow-sm hover:shadow-md transition-shadow"
+              onClick={() => onNavigate?.(stat.targetTab)}
+              className="bg-card border border-border rounded-xl p-6 space-y-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer hover:bg-muted/50"
             >
               <div className="flex items-center gap-4">
                 <div className={`${stat.color} p-3 rounded-lg`}>

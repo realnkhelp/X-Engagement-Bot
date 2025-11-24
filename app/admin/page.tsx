@@ -21,7 +21,7 @@ export default function AdminPanel() {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <AdminDashboard />;
+        return <AdminDashboard onNavigate={setActiveTab} />;
       case 'users':
         return <AdminUsers />;
       case 'tasks':
@@ -41,7 +41,7 @@ export default function AdminPanel() {
       case 'settings':
         return <AdminSettings />;
       default:
-        return <AdminDashboard />;
+        return <AdminDashboard onNavigate={setActiveTab} />;
     }
   };
 
