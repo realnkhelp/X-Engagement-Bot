@@ -204,7 +204,7 @@ export default function CreateTaskScreen({ user }: CreateTaskScreenProps) {
                 type="number"
                 min="10"
                 value={formData.quantity}
-                onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 0 })}
+                onChange={(e) => setFormData({ ...formData, quantity: e.target.value === "" ? 0 : parseInt(e.target.value) })}
                 className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold"
               />
             </div>
