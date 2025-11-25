@@ -28,8 +28,9 @@ export default function WalletScreen() {
   const [showErrorAlert, setShowErrorAlert] = useState<string | null>(null);
 
   const depositHistory = [
-    { id: 1, amount: 500, method: 'USDT BEP20', date: '2025-01-18', status: 'Completed' },
-    { id: 2, amount: 25, method: 'TON', date: '2025-01-17', status: 'Pending' },
+    { id: 1, amount: 500, method: 'USDT', date: '2025-01-18', status: 'Completed', reason: null },
+    { id: 2, amount: 25, method: 'TON', date: '2025-01-17', status: 'Pending', reason: null },
+    { id: 3, amount: 100, method: 'USDT', date: '2025-01-16', status: 'Rejected', reason: 'Fake Transaction' },
   ];
 
   const transactions = [
@@ -174,7 +175,7 @@ export default function WalletScreen() {
 
       <div className="flex gap-2 bg-muted p-1 rounded-xl">
         <button
-                  onClick={() => setActiveTab('deposit')}
+          onClick={() => setActiveTab('deposit')}
           className={`flex-1 py-2.5 rounded-lg font-semibold text-sm transition-all ${
             activeTab === 'deposit'
               ? 'bg-card text-foreground shadow-sm'
@@ -198,20 +199,35 @@ export default function WalletScreen() {
       <div className="space-y-3">
         {activeTab === 'deposit' ? (
           depositHistory.map((item) => (
-            <div key={item.id} className="flex items-center justify-between p-4 rounded-xl border border-border bg-card">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
-                  <Download className="w-5 h-5 text-green-600" />
+            <div key={item.id} className="flex flex-col p-4 rounded-xl border border-border bg-card">
+              <div className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
+                    <Download className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                                        <p className="font-semibold text-sm">{item.method} Deposit</p>
+                    <p className="text-xs text-muted-foreground">{item.date}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-semibold text-sm">Deposit</p>
-                  <p className="text-xs text-muted-foreground">{item.date} • {item.method}</p>
+                <div className="text-right">
+                  <p className="font-bold text-green-600">+{item.amount}</p>
+                  <p className={`text-[10px] uppercase font-bold tracking-wider ${
+                    item.status === 'Rejected' ? 'text-red-500' : 
+                    item.status === 'Completed' ? 'text-green-600' : 'text-muted-foreground'
+                  }`}>
+                    {item.status}
+                  </p>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="font-bold text-green-600">+{item.amount}</p>
-                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{item.status}</p>
-              </div>
+
+              {item.status === 'Rejected' && item.reason && (
+                <div className="mt-3 pt-2 border-t border-border">
+                  <p className="text-xs text-red-500 font-medium">
+                    Reason: {item.reason}
+                  </p>
+                </div>
+              )}
             </div>
           ))
         ) : (
