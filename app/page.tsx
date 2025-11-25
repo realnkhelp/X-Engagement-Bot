@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Wallet, Bell, CheckSquare, Plus, Shield, Home, Moon, Sun } from 'lucide-react';
+import { Bell, CheckSquare, Plus, Shield, Home, Moon, Sun } from 'lucide-react';
 import HomeScreen from '@/components/screens/home-screen';
 import TasksScreen from '@/components/screens/tasks-screen';
 import CreateTaskScreen from '@/components/screens/create-task-screen';
@@ -104,15 +104,15 @@ export default function Page() {
       case 'create':
         return <CreateTaskScreen user={user} />;
       case 'report':
-        return <ReportScreen />;
+        return <ReportScreen onNavigate={setActiveScreen} />;
       case 'announcements':
         return <AnnouncementsScreen />;
       case 'wallet':
-        return <WalletScreen user={user} />;
+        return <WalletScreen />;
       case 'rules':
         return <RulesScreen />;
       default:
-        return <HomeScreen user={user} isDark={isDark} onNavigate={setActiveScreen} />;
+              return <HomeScreen user={user} isDark={isDark} onNavigate={setActiveScreen} />;
     }
   };
 
@@ -123,6 +123,10 @@ export default function Page() {
     { id: 'report', label: 'Report', icon: Shield },
     { id: 'announcements', label: 'Updates', icon: Bell },
   ];
+
+  const getActiveIndex = () => {
+    return navigationItems.findIndex(item => item.id === activeScreen);
+  };
 
   return (
     <div className={isDark ? 'dark' : ''}>
@@ -155,31 +159,67 @@ export default function Page() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-auto max-w-md mx-auto w-full pb-20">
+        <main className="flex-1 overflow-auto max-w-md mx-auto w-full pb-24 no-scrollbar">
           {renderScreen()}
         </main>
 
-        <nav className="fixed bottom-0 left-0 right-0 border-t border-border bg-card z-40 max-w-md mx-auto">
-          <div className="flex items-center justify-around">
-            {navigationItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveScreen(item.id as Screen)}
-                  className={`flex-1 py-3 px-2 flex flex-col items-center justify-center gap-1 transition ${
-                    activeScreen === item.id
-                      ? 'text-blue-500 bg-blue-500/10'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span className="text-xs font-medium">{item.label}</span>
-                </button>
-              );
-            })}
+        <div className="fixed bottom-0 w-full max-w-md mx-auto left-0 right-0 z-50">
+          <div className="relative bg-card h-[70px] rounded-t-xl shadow-[0_-5px_15px_rgba(0,0,0,0.1)] flex justify-center items-center px-2">
+            
+            <div 
+              className="absolute top-[-50%] w-[60px] h-[60px] bg-blue-600 rounded-full border-[6px] border-background transition-all duration-500 ease-in-out flex items-center justify-center shadow-lg"
+              style={{
+                left: `calc(calc(100% / 5) * ${getActiveIndex()} + calc(100% / 10) - 30px)`
+              }}
+            >
+               <div className="absolute top-[50%] left-[-22px] w-[20px] h-[20px] bg-transparent rounded-tr-[20px] shadow-[1px_-10px_0_0_hsl(var(--background))]"></div>
+               <div className="absolute top-[50%] right-[-22px] w-[20px] h-[20px] bg-transparent rounded-tl-[20px] shadow-[-1px_-10px_0_0_hsl(var(--background))]"></div>
+               
+               {navigationItems.map((item, index) => {
+                  const Icon = item.icon;
+                  return activeScreen === item.id ? (
+                    <Icon key={index} className="w-6 h-6 text-white" />
+                  ) : null;
+               })}
+            </div>
+
+            <ul className="flex w-full p-0 m-0 relative">
+              {navigationItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeScreen === item.id;
+                
+                return (
+                  <li 
+                    key={item.id} 
+                    className="relative list-none w-[20%] h-[70px] z-[1]"
+                    onClick={() => setActiveScreen(item.id as Screen)}
+                  >
+                    <a className="relative flex justify-center items-center flex-col w-full h-full text-center font-medium cursor-pointer no-underline">
+                      <span 
+                        className={`relative block leading-[75px] text-[1.5em] text-center transition-all duration-500 ${
+                          isActive 
+                            ? 'translate-y-[-32px] opacity-0' 
+                            : 'translate-y-0 text-muted-foreground'
+                        }`}
+                      >
+                        <Icon className="w-6 h-6" />
+                      </span>
+                      <span 
+                        className={`absolute text-foreground font-normal text-[0.75em] tracking-[0.05em] transition-all duration-500 ${
+                          isActive 
+                            ? 'opacity-100 translate-y-[10px]' 
+                            : 'opacity-0 translate-y-[20px]'
+                        }`}
+                      >
+                        {item.label}
+                      </span>
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
           </div>
-        </nav>
+        </div>
       </div>
     </div>
   );
