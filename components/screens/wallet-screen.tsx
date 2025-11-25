@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Download, TrendingUp, Copy, Check, X, ChevronRight, RefreshCw, Send, Plus } from 'lucide-react';
+import { Download, TrendingUp, Copy, Check, X, ChevronRight, RefreshCw, Send, Plus, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 
 const initialUserAssets = [
   { id: 1, name: 'Toncoin', symbol: 'TON', balance: 12.5, logo: 'https://cryptologos.cc/logos/toncoin-ton-logo.png?v=026' },
@@ -18,13 +18,14 @@ export default function WalletScreen() {
   const [selectedMethod, setSelectedMethod] = useState<any>(null);
   
   const [assets, setAssets] = useState(initialUserAssets);
-  const [prices, setPrices] = useState<{ [key: string]: number }>({});
+  const [prices, setPrices] = useState<{ [key: string]: { price: number, change: number } }>({});
   const [isLoading, setIsLoading] = useState(true);
   
   const [depositAmount, setDepositAmount] = useState('');
   const [depositTxid, setDepositTxid] = useState('');
   const [amountError, setAmountError] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showErrorAlert, setShowErrorAlert] = useState<string | null>(null);
 
   const depositHistory = [
     { id: 1, amount: 500, method: 'USDT BEP20', date: '2025-01-18', status: 'Completed' },
@@ -33,17 +34,22 @@ export default function WalletScreen() {
 
   const transactions = [
     { id: 1, type: 'Task Payment', amount: +0.45, date: '2025-01-18', status: 'Completed' },
-    { id: 2, type: 'Referral Bonus', amount: +1.50, date: '2025-01-17', status: 'Completed' },
+    { id: 2, type: 'Task Payment', amount: +0.30, date: '2025-01-17', status: 'Completed' },
   ];
 
   const fetchLivePrices = async () => {
     try {
-      const response = await fetch('https://api.binance.com/api/v3/ticker/price');
+      const response = await fetch('https://api.binance.com/api/v3/ticker/24hr');
       const data = await response.json();
-      const priceMap: { [key: string]: number } = {};
+      const priceMap: { [key: string]: { price: number, change: number } } = {};
+      
       data.forEach((ticker: any) => {
-        priceMap[ticker.symbol] = parseFloat(ticker.price);
+        priceMap[ticker.symbol] = {
+          price: parseFloat(ticker.lastPrice),
+          change: parseFloat(ticker.priceChangePercent)
+        };
       });
+      
       setPrices(priceMap);
       setIsLoading(false);
     } catch (error) {
@@ -58,8 +64,8 @@ export default function WalletScreen() {
   }, []);
 
   const totalPortfolioValue = assets.reduce((total, asset) => {
-    const livePrice = asset.symbol === 'USDT' ? 1 : (prices[`${asset.symbol}USDT`] || 0);
-    return total + (asset.balance * livePrice);
+    const liveData = asset.symbol === 'USDT' ? { price: 1 } : (prices[`${asset.symbol}USDT`] || { price: 0 });
+    return total + (asset.balance * liveData.price);
   }, 0);
 
   const handleCopy = (text: string) => {
@@ -69,10 +75,19 @@ export default function WalletScreen() {
   };
 
   const handleDepositSubmit = () => {
-    if (!depositAmount || parseFloat(depositAmount) < selectedMethod.minDeposit) {
+    if (!depositAmount) {
+        setAmountError(true);
+        return;
+    }
+    
+    const amount = parseFloat(depositAmount);
+    if (isNaN(amount) || amount < selectedMethod.minDeposit) {
       setAmountError(true);
+      setShowErrorAlert(`Minimum deposit amount is ${selectedMethod.minDeposit} ${selectedMethod.symbol}`);
+      setTimeout(() => setShowErrorAlert(null), 3000);
       return;
     }
+    
     setAmountError(false);
     setShowDepositModal(false);
     setSelectedMethod(null);
@@ -114,9 +129,13 @@ export default function WalletScreen() {
 
         {assets.map((asset) => {
           const pairSymbol = `${asset.symbol}USDT`;
-          const currentPrice = asset.symbol === 'USDT' ? 1 : (prices[pairSymbol] || 0);
-          const valueInUsd = asset.balance * currentPrice;
-          const isPriceLoaded = currentPrice > 0;
+          const marketData = asset.symbol === 'USDT' 
+            ? { price: 1, change: 0.01 } 
+            : (prices[pairSymbol] || { price: 0, change: 0 });
+            
+          const valueInUsd = asset.balance * marketData.price;
+          const isPriceLoaded = marketData.price > 0;
+          const isPositive = marketData.change >= 0;
 
           return (
             <div key={asset.id} className="bg-card border border-border rounded-2xl p-4 flex justify-between items-center shadow-sm">
@@ -126,16 +145,19 @@ export default function WalletScreen() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h4 className="font-bold text-base">{asset.symbol}</h4>
-                    {isPriceLoaded && (
-                        <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold">
-                            ${currentPrice.toLocaleString()}
-                        </span>
-                    )}
+                    <h4 className="font-bold text-base">{asset.symbol} <span className="text-sm font-normal text-muted-foreground">({asset.name})</span></h4>
                   </div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    {asset.name}
-                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                     <span className="font-bold text-sm">
+                        ${isPriceLoaded ? marketData.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 }) : "..."}
+                     </span>
+                     {isPriceLoaded && (
+                        <span className={`text-xs font-bold flex items-center ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
+                           {isPositive ? <ArrowUpRight className="w-3 h-3 mr-0.5" /> : <ArrowDownRight className="w-3 h-3 mr-0.5" />}
+                           {Math.abs(marketData.change).toFixed(2)}%
+                        </span>
+                     )}
+                  </div>
                 </div>
               </div>
               
@@ -152,7 +174,7 @@ export default function WalletScreen() {
 
       <div className="flex gap-2 bg-muted p-1 rounded-xl">
         <button
-          onClick={() => setActiveTab('deposit')}
+                  onClick={() => setActiveTab('deposit')}
           className={`flex-1 py-2.5 rounded-lg font-semibold text-sm transition-all ${
             activeTab === 'deposit'
               ? 'bg-card text-foreground shadow-sm'
@@ -162,7 +184,7 @@ export default function WalletScreen() {
           Deposit History
         </button>
         <button
-                  onClick={() => setActiveTab('transactions')}
+          onClick={() => setActiveTab('transactions')}
           className={`flex-1 py-2.5 rounded-lg font-semibold text-sm transition-all ${
             activeTab === 'transactions'
               ? 'bg-card text-foreground shadow-sm'
@@ -219,8 +241,14 @@ export default function WalletScreen() {
 
       {showDepositModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-[60] p-4 animate-in fade-in duration-200">
-          <div className="bg-card w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl animate-in slide-in-from-bottom-10 zoom-in-95 duration-300">
+          <div className="bg-card w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl animate-in slide-in-from-bottom-10 zoom-in-95 duration-300 relative">
             
+            {showErrorAlert && (
+                <div className="absolute top-4 left-4 right-4 bg-red-500 text-white px-4 py-3 rounded-xl shadow-lg z-50 animate-in slide-in-from-top-2 text-sm font-semibold text-center">
+                    {showErrorAlert}
+                </div>
+            )}
+
             <div className="p-4 border-b border-border flex justify-between items-center bg-muted/30">
               <h2 className="font-bold text-lg">
                 {selectedMethod ? 'Deposit' : 'Select Payment Method'}
@@ -262,7 +290,7 @@ export default function WalletScreen() {
                 <div className="space-y-5">
                   <div className="bg-muted/50 p-4 rounded-xl space-y-2 border border-border/50">
                     <label className="block text-sm text-muted-foreground font-medium">
-                      <span className="font-bold text-foreground">{selectedMethod.symbol} ADDRESS</span>
+                      <span className="font-bold text-foreground">{selectedMethod.name} ADDRESS</span>
                     </label>
                     <div className="flex items-center justify-between gap-2 bg-background p-3 rounded-lg border border-border">
                       <p className="text-xs font-mono break-all text-muted-foreground line-clamp-2">
