@@ -1,110 +1,155 @@
-import { useState } from 'react';
-import { Download, TrendingUp, Plus, ArrowUpRight, ArrowDownRight, Wallet } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Download, TrendingUp, Copy, Check, X, ChevronRight, RefreshCw, Send, Plus } from 'lucide-react';
 
-interface WalletScreenProps {
-  user: any;
-}
+const initialUserAssets = [
+  { id: 1, name: 'Toncoin', symbol: 'TON', balance: 12.5, logo: 'https://cryptologos.cc/logos/toncoin-ton-logo.png?v=026' },
+  { id: 2, name: 'Tether', symbol: 'USDT', balance: 2500.00, logo: 'https://cryptologos.cc/logos/tether-usdt-logo.png?v=026' },
+  { id: 3, name: 'Bitcoin', symbol: 'BTC', balance: 0.00045, logo: 'https://cryptologos.cc/logos/bitcoin-btc-logo.png?v=026' },
+];
 
-export default function WalletScreen({ user }: WalletScreenProps) {
+const paymentMethods = [
+  { id: 'ton', name: 'TON', symbol: 'TON', address: 'UQBvW8Z...ExampleTonAddress', minDeposit: 1 },
+  { id: 'usdt', name: 'USDT BEP20', symbol: 'USDT', address: '0x22b55ccc532d4ad62895975e6fe4542a6699bcc9', minDeposit: 5 },
+];
+
+export default function WalletScreen() {
   const [activeTab, setActiveTab] = useState<'deposit' | 'transactions'>('deposit');
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [selectedCurrency, setSelectedCurrency] = useState<'TON' | 'USDT' | null>(null);
+  const [showDepositModal, setShowDepositModal] = useState(false);
+  const [selectedMethod, setSelectedMethod] = useState<any>(null);
+  
+  const [assets, setAssets] = useState(initialUserAssets);
+  const [prices, setPrices] = useState<{ [key: string]: number }>({});
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const [depositAmount, setDepositAmount] = useState('');
+  const [depositTxid, setDepositTxid] = useState('');
+  const [amountError, setAmountError] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-  // Demo Assets Data (Ye data admin se aayega future me)
-  const assets = [
-    { 
-      id: 'ton', 
-      name: 'TON', 
-      symbol: 'TON',
-      icon: 'https://cryptologos.cc/logos/toncoin-ton-logo.png?v=029', // TON Logo
-      price: 5.45, 
-      change: -0.48, // Negative value for red color
-      userBalance: 12.5, 
-      userValue: 68.12 
-    },
-    { 
-      id: 'usdt', 
-      name: 'Tether', 
-      symbol: 'USDT', 
-      icon: 'https://cryptologos.cc/logos/tether-usdt-logo.png?v=029', // USDT Logo
-      price: 1.00, 
-      change: 0.01, // Positive value for green color
-      userBalance: 2500.00, 
-      userValue: 2500.00 
-    }
-  ];
-
-  // History Data
   const depositHistory = [
-    { id: 1, amount: 500, method: 'USDT Transfer', date: '2025-01-18', status: 'Completed' },
-    { id: 2, amount: 250, method: 'TON Transfer', date: '2025-01-17', status: 'Completed' },
+    { id: 1, amount: 500, method: 'USDT BEP20', date: '2025-01-18', status: 'Completed' },
+    { id: 2, amount: 25, method: 'TON', date: '2025-01-17', status: 'Pending' },
   ];
 
   const transactions = [
-    { id: 1, type: 'Task Payment', amount: -150, date: '2025-01-18', status: 'Completed' },
-    { id: 2, type: 'Task Reward', amount: +300, date: '2025-01-17', status: 'Completed' },
+    { id: 1, type: 'Task Payment', amount: +0.45, date: '2025-01-18', status: 'Completed' },
+    { id: 2, type: 'Referral Bonus', amount: +1.50, date: '2025-01-17', status: 'Completed' },
   ];
 
+  const fetchLivePrices = async () => {
+    try {
+      const response = await fetch('https://api.binance.com/api/v3/ticker/price');
+      const data = await response.json();
+      const priceMap: { [key: string]: number } = {};
+      data.forEach((ticker: any) => {
+        priceMap[ticker.symbol] = parseFloat(ticker.price);
+      });
+      setPrices(priceMap);
+      setIsLoading(false);
+    } catch (error) {
+      console.error("Error fetching prices", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchLivePrices();
+    const interval = setInterval(fetchLivePrices, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const totalPortfolioValue = assets.reduce((total, asset) => {
+    const livePrice = asset.symbol === 'USDT' ? 1 : (prices[`${asset.symbol}USDT`] || 0);
+    return total + (asset.balance * livePrice);
+  }, 0);
+
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleDepositSubmit = () => {
+    if (!depositAmount || parseFloat(depositAmount) < selectedMethod.minDeposit) {
+      setAmountError(true);
+      return;
+    }
+    setAmountError(false);
+    setShowDepositModal(false);
+    setSelectedMethod(null);
+    setDepositAmount('');
+    setDepositTxid('');
+  };
+
   return (
-    <div className="px-4 py-6 space-y-6 pb-24">
+    <div className="px-4 py-6 space-y-6 pb-24 bg-background min-h-screen">
       
-      {/* 1. Main Balance Card (Centered - New Design) */}
-      <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-8 text-white flex flex-col items-center justify-center text-center space-y-4 shadow-lg shadow-blue-500/20">
-        <span className="text-sm opacity-90 font-medium tracking-wide">Total Balance</span>
-        <div className="text-5xl font-bold tracking-tight">
-          {user.balance.toFixed(2)} <span className="text-2xl">USDT</span>
+      <div className="relative overflow-hidden bg-blue-600 rounded-3xl p-6 text-white shadow-xl shadow-blue-500/20">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full blur-2xl -ml-12 -mb-12 pointer-events-none"></div>
+
+        <div className="relative z-10 flex flex-col items-center text-center">
+          <p className="text-blue-100 font-medium text-sm mb-1">Total Balance</p>
+          <div className="flex items-baseline gap-1">
+            <h1 className="text-5xl font-bold tracking-tight">
+              {totalPortfolioValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </h1>
+            <span className="text-xl text-blue-200 font-medium">USDT</span>
+          </div>
+
+          <button 
+            onClick={() => setShowDepositModal(true)}
+            className="mt-6 flex items-center justify-center gap-2 bg-white/20 hover:bg-white/30 transition py-3 px-8 rounded-xl font-bold backdrop-blur-md active:scale-95 w-full max-w-[200px]"
+          >
+            <Download className="w-5 h-5" />
+            Deposit
+          </button>
         </div>
-        
-        <button
-          onClick={() => setShowPaymentModal(true)}
-          className="w-full max-w-[200px] mt-2 py-3 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur-sm transition-all font-semibold flex items-center justify-center gap-2 active:scale-95"
-        >
-          <Download className="w-5 h-5" />
-          Deposit
-        </button>
       </div>
 
-      {/* 2. Assets Section (TON/USDT Real-time Style - New Design) */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-semibold text-muted-foreground px-1">Assets</h3>
-        {assets.map((asset) => (
-          <div key={asset.id} className="bg-card border border-border rounded-xl p-4 flex items-center justify-between shadow-sm">
-            
-            {/* Left: Icon & Name & Price */}
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-muted p-1 flex items-center justify-center">
-                 {/* Fallback icon if image fails */}
-                <img 
-                  src={asset.icon} 
-                  alt={asset.name} 
-                  className="w-full h-full object-cover rounded-full"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = "https://placehold.co/40x40?text=?";
-                  }}
-                />
-              </div>
-              <div>
-                <p className="font-bold text-base">{asset.symbol}</p>
-                <div className="flex items-center gap-2 text-xs font-medium">
-                  <span>${asset.price.toFixed(2)}</span>
-                  <span className={`${asset.change >= 0 ? 'text-green-500' : 'text-red-500'} flex items-center`}>
-                    {asset.change}%
-                  </span>
+      <div className="space-y-4">
+        <div className="flex justify-between items-center px-1">
+            <h3 className="font-bold text-lg text-foreground">Assets</h3>
+            {isLoading && <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground"/>}
+        </div>
+
+        {assets.map((asset) => {
+          const pairSymbol = `${asset.symbol}USDT`;
+          const currentPrice = asset.symbol === 'USDT' ? 1 : (prices[pairSymbol] || 0);
+          const valueInUsd = asset.balance * currentPrice;
+          const isPriceLoaded = currentPrice > 0;
+
+          return (
+            <div key={asset.id} className="bg-card border border-border rounded-2xl p-4 flex justify-between items-center shadow-sm">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-gray-50 dark:bg-zinc-800 p-2">
+                  <img src={asset.logo} alt={asset.name} className="w-full h-full object-contain" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-bold text-base">{asset.symbol}</h4>
+                    {isPriceLoaded && (
+                        <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold">
+                            ${currentPrice.toLocaleString()}
+                        </span>
+                    )}
+                  </div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    {asset.name}
+                  </p>
                 </div>
               </div>
+              
+              <div className="text-right">
+                <p className="font-bold text-lg">{asset.balance} {asset.symbol}</p>
+                <p className="text-xs text-muted-foreground font-medium">
+                  ≈ ${valueInUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+              </div>
             </div>
-
-            {/* Right: User Balance & Value */}
-            <div className="text-right">
-              <p className="font-bold text-base">{asset.userBalance} {asset.symbol}</p>
-              <p className="text-xs text-muted-foreground">${asset.userValue.toFixed(2)}</p>
-            </div>
-
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      {/* 3. Tabs (Clean Style - New Design) */}
       <div className="flex gap-2 bg-muted p-1 rounded-xl">
         <button
           onClick={() => setActiveTab('deposit')}
@@ -117,7 +162,7 @@ export default function WalletScreen({ user }: WalletScreenProps) {
           Deposit History
         </button>
         <button
-          onClick={() => setActiveTab('transactions')}
+                  onClick={() => setActiveTab('transactions')}
           className={`flex-1 py-2.5 rounded-lg font-semibold text-sm transition-all ${
             activeTab === 'transactions'
               ? 'bg-card text-foreground shadow-sm'
@@ -128,93 +173,156 @@ export default function WalletScreen({ user }: WalletScreenProps) {
         </button>
       </div>
 
-      {/* 4. History Lists (New Design) */}
-      <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
-        
-        {activeTab === 'deposit' && depositHistory.map((item) => (
-          <div key={item.id} className="flex items-center justify-between p-4 rounded-xl border border-border bg-card hover:bg-muted/50 transition">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
-                <Download className="w-5 h-5 text-green-600" />
+      <div className="space-y-3">
+        {activeTab === 'deposit' ? (
+          depositHistory.map((item) => (
+            <div key={item.id} className="flex items-center justify-between p-4 rounded-xl border border-border bg-card">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
+                  <Download className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm">Deposit</p>
+                  <p className="text-xs text-muted-foreground">{item.date} • {item.method}</p>
+                </div>
               </div>
-              <div>
-                <p className="font-semibold text-sm">{item.method}</p>
-                <p className="text-xs text-muted-foreground">{item.date}</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="font-bold text-green-600">+{item.amount}</p>
-              <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{item.status}</p>
-            </div>
-          </div>
-        ))}
-
-        {activeTab === 'transactions' && transactions.map((item) => (
-          <div key={item.id} className="flex items-center justify-between p-4 rounded-xl border border-border bg-card hover:bg-muted/50 transition">
-            <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                item.amount > 0 ? 'bg-green-500/10' : 'bg-red-500/10'
-              }`}>
-                <TrendingUp className={`w-5 h-5 ${item.amount > 0 ? 'text-green-600' : 'text-red-500'}`} />
-              </div>
-              <div>
-                <p className="font-semibold text-sm">{item.type}</p>
-                <p className="text-xs text-muted-foreground">{item.date}</p>
+              <div className="text-right">
+                <p className="font-bold text-green-600">+{item.amount}</p>
+                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{item.status}</p>
               </div>
             </div>
-            <div className="text-right">
-              <p className={`font-bold ${item.amount > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                {item.amount > 0 ? '+' : ''}{item.amount}
-              </p>
-              <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{item.status}</p>
+          ))
+        ) : (
+          transactions.map((item) => (
+            <div key={item.id} className="flex items-center justify-between p-4 rounded-xl border border-border bg-card">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                  item.amount > 0 ? 'bg-green-500/10' : 'bg-red-500/10'
+                }`}>
+                  <TrendingUp className={`w-5 h-5 ${item.amount > 0 ? 'text-green-600' : 'text-red-500'}`} />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm">{item.type}</p>
+                  <p className="text-xs text-muted-foreground">{item.date}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className={`font-bold ${item.amount > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                  {item.amount > 0 ? '+' : ''}{item.amount}
+                </p>
+                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{item.status}</p>
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
 
-      {/* 5. Payment Modal (OLD DESIGN RESTORED) */}
-      {showPaymentModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-end z-50 max-w-md mx-auto">
-          <div className="w-full bg-card rounded-t-2xl p-6 space-y-4 animate-in">
-            <div className="flex items-center justify-between">
-              <h2 className="font-bold text-lg">Select Payment Method</h2>
-              <button
-                onClick={() => setShowPaymentModal(false)}
-                className="text-muted-foreground hover:text-foreground p-1"
+      {showDepositModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-[60] p-4 animate-in fade-in duration-200">
+          <div className="bg-card w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl animate-in slide-in-from-bottom-10 zoom-in-95 duration-300">
+            
+            <div className="p-4 border-b border-border flex justify-between items-center bg-muted/30">
+              <h2 className="font-bold text-lg">
+                {selectedMethod ? 'Deposit' : 'Select Payment Method'}
+              </h2>
+              <button 
+                onClick={() => {
+                  setShowDepositModal(false);
+                  setSelectedMethod(null);
+                  setAmountError(false);
+                  setDepositAmount('');
+                }}
+                className="p-1 hover:bg-muted rounded-full transition"
               >
-                ✕
+                <X className="w-5 h-5 text-muted-foreground" />
               </button>
             </div>
 
-            <div className="space-y-2">
-              {['TON', 'USDT'].map((currency) => (
-                <button
-                  key={currency}
-                  onClick={() => setSelectedCurrency(currency as 'TON' | 'USDT')}
-                  className={`w-full p-3 rounded-lg border-2 transition font-semibold ${
-                    selectedCurrency === currency
-                      ? 'border-blue-500 bg-blue-500/10 text-blue-600'
-                      : 'border-border hover:border-blue-500'
-                  }`}
-                >
-                  {currency}
-                </button>
-              ))}
+            <div className="p-5">
+              {!selectedMethod ? (
+                <div className="space-y-3">
+                  {paymentMethods.map((method) => (
+                    <button
+                      key={method.id}
+                      onClick={() => setSelectedMethod(method)}
+                      className="w-full p-4 rounded-xl border border-border hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all flex items-center justify-between group"
+                    >
+                      <span className="font-bold text-lg">{method.name}</span>
+                      <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-blue-500" />
+                    </button>
+                  ))}
+                  <button 
+                    onClick={() => setShowDepositModal(false)}
+                    className="w-full py-3.5 mt-2 rounded-xl border border-border font-semibold hover:bg-muted transition"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  <div className="bg-muted/50 p-4 rounded-xl space-y-2 border border-border/50">
+                    <label className="block text-sm text-muted-foreground font-medium">
+                      <span className="font-bold text-foreground">{selectedMethod.symbol} ADDRESS</span>
+                    </label>
+                    <div className="flex items-center justify-between gap-2 bg-background p-3 rounded-lg border border-border">
+                      <p className="text-xs font-mono break-all text-muted-foreground line-clamp-2">
+                        {selectedMethod.address}
+                      </p>
+                      <button 
+                        onClick={() => handleCopy(selectedMethod.address)}
+                        className="p-2 hover:bg-muted rounded-md transition text-blue-600 shrink-0"
+                      >
+                        {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <input
+                      type="number"
+                      value={depositAmount}
+                      onChange={(e) => {
+                        setDepositAmount(e.target.value);
+                        setAmountError(false);
+                      }}
+                      placeholder={`Amount (Minimum ${selectedMethod.minDeposit})`}
+                      className={`w-full px-4 py-3.5 rounded-xl border bg-background text-foreground focus:outline-none focus:ring-2 transition font-medium ${
+                        amountError 
+                          ? "border-red-500 focus:ring-red-500" 
+                          : "border-border focus:ring-blue-500"
+                      }`}
+                    />
+                    
+                    <input
+                      type="text"
+                      value={depositTxid}
+                      onChange={(e) => setDepositTxid(e.target.value)}
+                      placeholder="TXID (Transaction Hash) / Payment URL"
+                      className="w-full px-4 py-3.5 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 transition font-medium"
+                    />
+                  </div>
+
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      onClick={() => {
+                        setSelectedMethod(null);
+                        setAmountError(false);
+                        setDepositAmount('');
+                      }}
+                      className="flex-1 py-3.5 rounded-xl border border-border font-bold hover:bg-muted transition"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleDepositSubmit}
+                      className="flex-1 py-3.5 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-500/20 active:scale-95"
+                    >
+                      Request Deposit
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-
-            {selectedCurrency && (
-              <button className="w-full py-3 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition">
-                {/* Changed Text: 0.55 PAY -> Deposit TON/USDT */}
-                Deposit {selectedCurrency}
-              </button>
-            )}
-
-            <button
-              onClick={() => setShowPaymentModal(false)}
-              className="w-full py-2 rounded-lg border border-border font-semibold hover:bg-muted transition"
-            >
-              Cancel
-            </button>
           </div>
         </div>
       )}
