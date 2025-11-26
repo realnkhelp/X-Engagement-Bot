@@ -22,19 +22,17 @@ export default function Page() {
   const [isLoading, setIsLoading] = useState(true);
   const [appConfig, setAppConfig] = useState<any>({});
   
-  // TESTING MODE: Default ID is NOT 'guest' so onboarding works immediately
   const [user, setUser] = useState({
-    id: 'test_user_123', 
-    name: 'Testing User',
+    id: 'guest_tester',
+    name: 'Guest Tester',
     avatar: '', 
     balance: 2500.00,
     currency: 'Points',
     isBlocked: false,
-    isOnboarded: false // Always false on refresh for testing
+    isOnboarded: false
   });
 
   useEffect(() => {
-    // Load App Config
     const configRef = doc(db, "settings", "appConfig");
     getDoc(configRef).then((snap) => {
         if (snap.exists()) {
@@ -42,9 +40,10 @@ export default function Page() {
         } else {
             setAppConfig({ onboardingReward: 5 });
         }
+    }).catch(() => {
+        setAppConfig({ onboardingReward: 5 });
     });
 
-    // Theme Logic
     const savedTheme = localStorage.getItem('theme');
     let themeToApply = 'light'; 
 
@@ -66,7 +65,6 @@ export default function Page() {
       document.documentElement.classList.remove('dark');
     }
 
-    // Load Telegram/Firebase Data
     const loadTelegramData = () => {
       if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp) {
         const tg = (window as any).Telegram.WebApp;
@@ -80,43 +78,24 @@ export default function Page() {
           const fullName = `${tgUser.first_name || ''} ${tgUser.last_name || ''}`.trim();
           const finalName = fullName || tgUser.username || `User`;
 
-          const userRef = doc(db, 'users', userId);
-          
-          onSnapshot(userRef, (docSnap) => {
-            if (docSnap.exists()) {
-              const data = docSnap.data();
-              setUser({
-                id: userId,
-                name: data.firstName || finalName,
-                avatar: tgUser.photo_url || '', 
-                balance: data.balance || 0,
-                currency: 'Points',
-                isBlocked: data.isBlocked || false,
-                isOnboarded: data.isOnboarded || false
-              });
-            } else {
-              // New User detected from Telegram
-              setUser(prev => ({
-                ...prev,
-                id: userId,
-                name: finalName,
-                avatar: tgUser.photo_url || '',
-                isOnboarded: false // Force false for new users
-              }));
-            }
-            setIsLoading(false);
-          });
-        } else {
-            setIsLoading(false);
+          setUser(prev => ({
+            ...prev,
+            id: userId,
+            name: finalName,
+            avatar: tgUser.photo_url || '',
+            isOnboarded: false
+          }));
         }
-      } else {
-          setIsLoading(false);
       }
+      setIsLoading(false);
     };
 
     loadTelegramData();
-    // Fallback if TG data doesn't load (for browser testing)
-    const timer = setTimeout(() => setIsLoading(false), 1000);
+    
+    const timer = setTimeout(() => {
+        setIsLoading(false);
+    }, 1000);
+
     return () => clearTimeout(timer);
   }, []);
 
@@ -137,7 +116,6 @@ export default function Page() {
   };
 
   const handleOnboardingComplete = () => {
-    // Update local state to hide onboarding immediately after clicking "Let's Go"
     setUser(prev => ({ ...prev, isOnboarded: true }));
   };
 
@@ -148,7 +126,7 @@ export default function Page() {
       case 'create': return <CreateTaskScreen user={user} />;
       case 'report': return <ReportScreen />;
       case 'announcements': return <AnnouncementsScreen />;
-      case 'wallet': return <WalletScreen user={user} />;
+      case 'wallet': return <WalletScreen />;
       case 'rules': return <RulesScreen />;
       default: return <HomeScreen user={user} isDark={isDark} onNavigate={setActiveScreen} />;
     }
@@ -166,17 +144,14 @@ export default function Page() {
     return navigationItems.findIndex(item => item.id === activeScreen);
   };
 
-  // 1. Loading Screen
   if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-background"><div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>;
   }
 
-  // 2. Blocked Screen Logic
   if (user.isBlocked) {
     return <BlockedScreen user={user} />;
   }
 
-  // 3. Onboarding Screen Logic (Removed 'guest' check for testing)
   if (!user.isOnboarded) {
     return (
       <OnboardingScreen 
@@ -187,14 +162,13 @@ export default function Page() {
     );
   }
 
-  // 4. Main App
   return (
     <div className={isDark ? 'dark' : ''}>
       <style jsx global>{`
         :root {
           --nav-bg: hsl(var(--card));
           --body-bg: hsl(var(--background));
-          --indicator-color: #ef4444; /* Red Color for Circle */
+          --indicator-color: #ef4444;
         }
 
         .navigation {
@@ -274,7 +248,6 @@ export default function Page() {
           transform: translateY(10px);
         }
 
-        /* The Magic Indicator Circle */
         .indicator {
           position: absolute;
           top: -50%;
@@ -286,7 +259,6 @@ export default function Page() {
           transition: 0.5s;
         }
 
-        /* The Curve (Gaddha) Logic - Left Side */
         .indicator::before {
           content: '';
           position: absolute;
@@ -299,7 +271,6 @@ export default function Page() {
           box-shadow: 1px -10px 0 0 var(--nav-bg);
         }
 
-        /* The Curve (Gaddha) Logic - Right Side */
         .indicator::after {
           content: '';
           position: absolute;
