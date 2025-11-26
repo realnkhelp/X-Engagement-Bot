@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { Wallet, Bell, CheckSquare, Plus, Shield, Home, Moon, Sun } from 'lucide-react';
+import { doc, onSnapshot, getDoc } from "firebase/firestore";
+import { db } from '@/lib/firebase';
 import HomeScreen from '@/components/screens/home-screen';
 import TasksScreen from '@/components/screens/tasks-screen';
 import CreateTaskScreen from '@/components/screens/create-task-screen';
@@ -9,22 +11,37 @@ import ReportScreen from '@/components/screens/report-screen';
 import AnnouncementsScreen from '@/components/screens/announcements-screen';
 import WalletScreen from '@/components/screens/wallet-screen';
 import RulesScreen from '@/components/screens/rules-screen';
+import BlockedScreen from '@/components/screens/blocked-screen';
+import OnboardingScreen from '@/components/screens/onboarding-screen';
 
 type Screen = 'home' | 'tasks' | 'create' | 'report' | 'announcements' | 'wallet' | 'rules';
 
 export default function Page() {
   const [activeScreen, setActiveScreen] = useState<Screen>('home');
   const [isDark, setIsDark] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [appConfig, setAppConfig] = useState<any>({});
   
   const [user, setUser] = useState({
     id: 'guest',
     name: 'Guest',
     avatar: '', 
     balance: 2500.00,
-    currency: 'Points'
+    currency: 'Points',
+    isBlocked: false,
+    isOnboarded: false
   });
 
   useEffect(() => {
+    const configRef = doc(db, "settings", "appConfig");
+    getDoc(configRef).then((snap) => {
+        if (snap.exists()) {
+            setAppConfig(snap.data());
+        } else {
+            setAppConfig({ onboardingReward: 5 });
+        }
+    });
+
     const savedTheme = localStorage.getItem('theme');
     let themeToApply = 'light'; 
 
@@ -55,23 +72,43 @@ export default function Page() {
         const tgUser = tg.initDataUnsafe?.user;
         
         if (tgUser) {
+          const userId = tgUser.id.toString();
           const fullName = `${tgUser.first_name || ''} ${tgUser.last_name || ''}`.trim();
           const finalName = fullName || tgUser.username || `User`;
+
+          const userRef = doc(db, 'users', userId);
           
-          setUser(prev => ({
-            ...prev,
-            id: tgUser.id.toString(),
-            name: finalName,
-            avatar: tgUser.photo_url || ''
-          }));
+          onSnapshot(userRef, (docSnap) => {
+            if (docSnap.exists()) {
+              const data = docSnap.data();
+              setUser({
+                id: userId,
+                name: data.firstName || finalName,
+                avatar: tgUser.photo_url || '', 
+                balance: data.balance || 0,
+                currency: 'Points',
+                isBlocked: data.isBlocked || false,
+                isOnboarded: data.isOnboarded || false
+              });
+            } else {
+              setUser(prev => ({
+                ...prev,
+                id: userId,
+                name: finalName,
+                avatar: tgUser.photo_url || ''
+              }));
+            }
+            setIsLoading(false);
+          });
+        } else {
+            setIsLoading(false);
         }
+      } else {
+          setIsLoading(false);
       }
     };
 
     loadTelegramData();
-    const timer = setTimeout(loadTelegramData, 1000);
-
-    return () => clearTimeout(timer);
   }, []);
 
   const toggleTheme = () => {
@@ -123,6 +160,24 @@ export default function Page() {
     { id: 'report', label: 'Report', icon: Shield },
     { id: 'announcements', label: 'Updates', icon: Bell },
   ];
+
+  if (isLoading) {
+    return <div className="min-h-screen flex items-center justify-center bg-background"><div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>;
+  }
+
+  if (user.isBlocked) {
+    return <BlockedScreen user={user} />;
+  }
+
+  if (!user.isOnboarded && user.id !== 'guest') {
+    return (
+      <OnboardingScreen 
+        user={user} 
+        rewardAmount={appConfig.onboardingReward || 5} 
+        onComplete={() => {}} 
+      />
+    );
+  }
 
   return (
     <div className={isDark ? 'dark' : ''}>
