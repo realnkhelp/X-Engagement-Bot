@@ -23,16 +23,17 @@ export default function Page() {
   const [appConfig, setAppConfig] = useState<any>({});
   
   const [user, setUser] = useState({
-    id: '12345',
-    name: 'Test User',
+    id: 'guest', // Default ID
+    name: 'Guest',
     avatar: '', 
     balance: 2500.00,
     currency: 'Points',
     isBlocked: false,
-    isOnboarded: false
+    isOnboarded: false // Default False: ताकि Onboarding दिखे
   });
 
   useEffect(() => {
+    // Load Config
     const configRef = doc(db, "settings", "appConfig");
     getDoc(configRef).then((snap) => {
         if (snap.exists()) {
@@ -42,17 +43,13 @@ export default function Page() {
         }
     });
 
+    // Load Theme
     const savedTheme = localStorage.getItem('theme');
     let themeToApply = 'light'; 
-
     if (savedTheme) {
       themeToApply = savedTheme;
-    } else {
-      if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.colorScheme === 'dark') {
-        themeToApply = 'dark';
-      } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        themeToApply = 'dark';
-      }
+    } else if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.colorScheme === 'dark') {
+      themeToApply = 'dark';
     }
 
     if (themeToApply === 'dark') {
@@ -63,6 +60,7 @@ export default function Page() {
       document.documentElement.classList.remove('dark');
     }
 
+    // Load User Data
     const loadTelegramData = () => {
       if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp) {
         const tg = (window as any).Telegram.WebApp;
@@ -74,22 +72,46 @@ export default function Page() {
         if (tgUser) {
           const userId = tgUser.id.toString();
           const fullName = `${tgUser.first_name || ''} ${tgUser.last_name || ''}`.trim();
-          
-          setUser(prev => ({
-            ...prev,
-            id: userId,
-            name: fullName || prev.name,
-            avatar: tgUser.photo_url || '',
-            isOnboarded: false
-          }));
+          const finalName = fullName || tgUser.username || `User`;
+
+          // Firebase Listener
+          const userRef = doc(db, 'users', userId);
+          onSnapshot(userRef, (docSnap) => {
+            if (docSnap.exists()) {
+              const data = docSnap.data();
+              setUser({
+                id: userId,
+                name: data.firstName || finalName,
+                avatar: tgUser.photo_url || '', 
+                balance: data.balance || 0,
+                currency: 'Points',
+                isBlocked: data.isBlocked || false,
+                isOnboarded: data.isOnboarded || false
+              });
+            } else {
+              // New User or No Data
+              setUser(prev => ({
+                ...prev,
+                id: userId,
+                name: finalName,
+                avatar: tgUser.photo_url || '',
+                isOnboarded: false // Force False for testing
+              }));
+            }
+            setIsLoading(false);
+          });
+        } else {
+            // Browser Testing Mode (No Telegram User)
+            setIsLoading(false);
         }
+      } else {
+          setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     loadTelegramData();
-    const timer = setTimeout(loadTelegramData, 1000);
-
+    // Fallback if telegram fails to load
+    const timer = setTimeout(() => setIsLoading(false), 2000);
     return () => clearTimeout(timer);
   }, []);
 
@@ -107,10 +129,6 @@ export default function Page() {
 
   const getInitials = (name: string) => {
     return name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
-  };
-
-  const handleOnboardingComplete = () => {
-    setUser(prev => ({ ...prev, isOnboarded: true }));
   };
 
   const renderScreen = () => {
@@ -146,12 +164,16 @@ export default function Page() {
     return <BlockedScreen user={user} />;
   }
 
+  // FIXED: Removed "&& user.id !== 'guest'" so it works in browser/testing
   if (!user.isOnboarded) {
     return (
       <OnboardingScreen 
         user={user} 
-        rewardAmount={5} 
-        onComplete={handleOnboardingComplete} 
+        rewardAmount={appConfig.onboardingReward || 5} 
+        onComplete={() => {
+            // Local state update to hide onboarding after clicking "Let's Go"
+            setUser(prev => ({ ...prev, isOnboarded: true }));
+        }} 
       />
     );
   }
@@ -162,7 +184,7 @@ export default function Page() {
         :root {
           --nav-bg: hsl(var(--card));
           --body-bg: hsl(var(--background));
-          --indicator-color: #f43f5e;
+          --indicator-color: #ef4444;
         }
         .navigation {
           position: fixed;
