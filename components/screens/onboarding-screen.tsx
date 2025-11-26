@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { doc, updateDoc, increment, arrayUnion } from "firebase/firestore";
-import { db } from '@/lib/firebase'; 
+import { useState } from 'react';
+// Firebase imports hata diye hain taaki testing mein error na aaye
+// import { doc, updateDoc, increment, arrayUnion } from "firebase/firestore";
+// import { db } from '@/lib/firebase'; 
 
 interface OnboardingScreenProps {
   user: any;
@@ -26,6 +27,7 @@ export default function OnboardingScreen({ user, rewardAmount, onComplete }: Onb
   const handleVerify = () => {
     if (!isJoined) return;
     setIsVerifying(true);
+    // Fake verification delay
     setTimeout(() => {
       setIsVerifying(false);
       setIsVerified(true);
@@ -42,34 +44,18 @@ export default function OnboardingScreen({ user, rewardAmount, onComplete }: Onb
       setStep(3);
     } else {
       setError(true);
+      // Error message 3 second baad hat jayega
       setTimeout(() => setError(false), 3000);
     }
   };
 
-  const handleClaim = async () => {
-    try {
-      const userRef = doc(db, 'users', user.id); 
-      
-      await updateDoc(userRef, {
-        balance: increment(rewardAmount),
-        isOnboarded: true,
-        xProfileLink: link,
-        transactions: arrayUnion({
-            type: 'Welcome Bonus',
-            amount: rewardAmount,
-            date: new Date().toISOString()
-        })
-      });
-      
-      onComplete();
-    } catch (error) {
-      console.error("Error claiming reward:", error);
-      onComplete(); 
-    }
+  const handleClaim = () => {
+    // Testing mode: Direct complete call without database
+    onComplete();
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-[#05080f] text-white font-sans overflow-hidden">
+    <div className="fixed inset-0 z-[100] bg-[#05080f] text-white font-sans overflow-hidden flex flex-col items-center justify-center">
       <style jsx>{`
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
         
@@ -107,8 +93,8 @@ export default function OnboardingScreen({ user, rewardAmount, onComplete }: Onb
             box-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
         }
         .page-container {
-            width: 100vw;
-            height: 100vh;
+            width: 100%;
+            height: 100%;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -163,7 +149,7 @@ export default function OnboardingScreen({ user, rewardAmount, onComplete }: Onb
             transform: translateX(-50%);
             width: 90%;
             max-width: 380px;
-            background: linear-gradient(90deg, #ff0000, #cc0000);
+            background: linear-gradient(90deg, #ff0000, #cc0000); /* RED Background */
             border: 1px solid #ff9999;
             color: #ffffff;
             padding: 12px 15px;
