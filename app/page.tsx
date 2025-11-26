@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { Bell, CheckSquare, Plus, Shield, Home, Moon, Sun } from 'lucide-react';
-import { doc, onSnapshot, getDoc } from "firebase/firestore";
-import { db } from '@/lib/firebase';
 import HomeScreen from '@/components/screens/home-screen';
 import TasksScreen from '@/components/screens/tasks-screen';
 import CreateTaskScreen from '@/components/screens/create-task-screen';
@@ -20,30 +18,20 @@ export default function Page() {
   const [activeScreen, setActiveScreen] = useState<Screen>('home');
   const [isDark, setIsDark] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [appConfig, setAppConfig] = useState<any>({});
   
   const [user, setUser] = useState({
-    id: 'guest_tester',
-    name: 'Guest Tester',
+    id: 'guest_test',
+    name: 'Guest User',
     avatar: '', 
-    balance: 2500.00,
+    balance: 0,
     currency: 'Points',
     isBlocked: false,
     isOnboarded: false
   });
 
-  useEffect(() => {
-    const configRef = doc(db, "settings", "appConfig");
-    getDoc(configRef).then((snap) => {
-        if (snap.exists()) {
-            setAppConfig(snap.data());
-        } else {
-            setAppConfig({ onboardingReward: 5 });
-        }
-    }).catch(() => {
-        setAppConfig({ onboardingReward: 5 });
-    });
+  const appConfig = { onboardingReward: 5 };
 
+  useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
     let themeToApply = 'light'; 
 
@@ -65,33 +53,6 @@ export default function Page() {
       document.documentElement.classList.remove('dark');
     }
 
-    const loadTelegramData = () => {
-      if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp) {
-        const tg = (window as any).Telegram.WebApp;
-        tg.ready();
-        tg.expand();
-        
-        const tgUser = tg.initDataUnsafe?.user;
-        
-        if (tgUser) {
-          const userId = tgUser.id.toString();
-          const fullName = `${tgUser.first_name || ''} ${tgUser.last_name || ''}`.trim();
-          const finalName = fullName || tgUser.username || `User`;
-
-          setUser(prev => ({
-            ...prev,
-            id: userId,
-            name: finalName,
-            avatar: tgUser.photo_url || '',
-            isOnboarded: false
-          }));
-        }
-      }
-      setIsLoading(false);
-    };
-
-    loadTelegramData();
-    
     const timer = setTimeout(() => {
         setIsLoading(false);
     }, 1000);
@@ -116,7 +77,7 @@ export default function Page() {
   };
 
   const handleOnboardingComplete = () => {
-    setUser(prev => ({ ...prev, isOnboarded: true }));
+    setUser(prev => ({ ...prev, isOnboarded: true, balance: prev.balance + appConfig.onboardingReward }));
   };
 
   const renderScreen = () => {
@@ -156,7 +117,7 @@ export default function Page() {
     return (
       <OnboardingScreen 
         user={user} 
-        rewardAmount={appConfig.onboardingReward || 5} 
+        rewardAmount={appConfig.onboardingReward} 
         onComplete={handleOnboardingComplete} 
       />
     );
