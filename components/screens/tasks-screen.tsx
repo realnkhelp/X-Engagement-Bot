@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { CheckCircle, ExternalLink, Clock } from 'lucide-react';
 
-// User data receive karne ke liye interface banaya
 interface TasksScreenProps {
   user: any; 
 }
@@ -18,7 +17,6 @@ interface Task {
   link: string;
 }
 
-// Yahan props me { user } add kiya hai
 export default function TasksScreen({ user }: TasksScreenProps) {
   const [activeTab, setActiveTab] = useState<'user' | 'admin'>('user');
   const [verifyingTasks, setVerifyingTasks] = useState<{ [key: number]: 'idle' | 'waiting' | 'ready' }>({});
@@ -28,34 +26,34 @@ export default function TasksScreen({ user }: TasksScreenProps) {
       id: 1,
       username: 'Nitesh Kumar',
       category: 'Follow',
-      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80&h=80&fit=crop',
+      avatar: '[https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80&h=80&fit=crop](https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80&h=80&fit=crop)',
       progress: 45,
       totalNeeded: 100,
       reward: 500,
       type: 'user',
-      link: 'https://twitter.com',
+      link: '[https://twitter.com](https://twitter.com)',
     },
     {
       id: 2,
       username: 'Priya Singh',
       category: 'Engagement',
-      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&h=80&fit=crop',
+      avatar: '[https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&h=80&fit=crop](https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&h=80&fit=crop)',
       progress: 32,
       totalNeeded: 50,
       reward: 250,
       type: 'user',
-      link: 'https://twitter.com',
+      link: '[https://twitter.com](https://twitter.com)',
     },
     {
       id: 3,
       username: 'System Admin',
       category: 'Follow',
-      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&h=80&fit=crop',
+      avatar: '[https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&h=80&fit=crop](https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&h=80&fit=crop)',
       progress: 12,
       totalNeeded: 20,
       reward: 1000,
       type: 'admin',
-      link: 'https://twitter.com',
+      link: '[https://twitter.com](https://twitter.com)',
     },
   ]);
 
@@ -64,44 +62,21 @@ export default function TasksScreen({ user }: TasksScreenProps) {
     
     setVerifyingTasks(prev => ({ ...prev, [taskId]: 'waiting' }));
 
-    // 8 second ka timer
     setTimeout(() => {
       setVerifyingTasks(prev => ({ ...prev, [taskId]: 'ready' }));
-    }, 8000); 
+    }, 5000); // 5 second demo delay
   };
 
-  const handleVerifyTask = async (taskId: number) => {
-    // 1. Task List se hatana
+  const handleVerifyTask = (taskId: number) => {
+    // List se task hatao
     setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
     
     const task = tasks.find(t => t.id === taskId);
-    
-    // IMPORTANT: Yahan wo Link hai jo Onboarding me save hua tha
-    const myProfileLink = user?.xProfileLink || ''; 
+    const myProfileLink = user?.xProfileLink || 'No Link Set'; 
 
     if (task) {
-      console.log(`Verifying Task ID: ${taskId}`);
-      console.log(`User completing task: ${user.name}`);
-      console.log(`User's X Profile Link: ${myProfileLink}`);
-
-      // TODO: Yahan aapko Database Call lagana hai (MySQL API ya Firebase)
-      // Example Data jo database me bhejna hai:
-      /*
-        const submissionData = {
-           taskId: task.id,
-           completedByUserId: user.id,
-           completedByUserName: user.name,
-           completedByUserProfileLink: myProfileLink, // YEH HAI WO LINK JO ADMIN KO DIKHEGA
-           timestamp: new Date(),
-           status: 'completed'
-        };
-        
-        // API Call Example:
-        // await fetch('/api/complete-task', { method: 'POST', body: JSON.stringify(submissionData) });
-      */
-
-      // Abhi sirf console me dikha raha hu ki link capture ho gaya hai
-      alert(`Task Verified! Your link sent to owner: ${myProfileLink}`);
+      // Demo Alert
+      alert(`[DEMO MODE] Task Verified!\nUser: ${user.name}\nX Link: ${myProfileLink}\nPoints Added: ${task.reward}`);
     }
   };
 

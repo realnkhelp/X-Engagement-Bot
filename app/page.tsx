@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { Wallet, Bell, CheckSquare, Plus, Shield, Home, Moon, Sun } from 'lucide-react';
-import { doc, onSnapshot, getDoc, updateDoc } from "firebase/firestore";
-import { db } from '@/lib/firebase';
 import HomeScreen from '@/components/screens/home-screen';
 import TasksScreen from '@/components/screens/tasks-screen';
 import CreateTaskScreen from '@/components/screens/create-task-screen';
@@ -20,95 +18,42 @@ export default function Page() {
   const [activeScreen, setActiveScreen] = useState<Screen>('home');
   const [isDark, setIsDark] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [appConfig, setAppConfig] = useState<any>({});
   
+  // 1. DUMMY USER DATA (Database ki jagah ye use hoga)
   const [user, setUser] = useState({
-    id: 'guest',
-    name: 'Guest',
-    avatar: '', 
+    id: 'demo-user-123',
+    name: 'Demo User',
+    avatar: '', // Khali hai to Initials dikhenge
     balance: 2500.00,
     currency: 'Points',
     isBlocked: false,
-    isOnboarded: false
+    isOnboarded: false, // Ise niche function se true karenge
+    xProfileLink: ''
   });
 
+  // Config bhi local bana diya
+  const appConfig = { onboardingReward: 500 };
+
   useEffect(() => {
-    const configRef = doc(db, "settings", "appConfig");
-    getDoc(configRef).then((snap) => {
-        if (snap.exists()) {
-            setAppConfig(snap.data());
-        } else {
-            setAppConfig({ onboardingReward: 5 });
-        }
-    });
-
+    // 2. Theme Logic (Local Storage se)
     const savedTheme = localStorage.getItem('theme');
-    let themeToApply = 'light'; 
-
-    if (savedTheme) {
-      themeToApply = savedTheme;
-    } else {
-      if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.colorScheme === 'dark') {
-        themeToApply = 'dark';
-      } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        themeToApply = 'dark';
-      }
-    }
-
-    if (themeToApply === 'dark') {
+    if (savedTheme === 'dark') {
       setIsDark(true);
       document.documentElement.classList.add('dark');
     } else {
-      setIsDark(false);
-      document.documentElement.classList.remove('dark');
+        // Agar Telegram dark mode me hai to auto dark
+        if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.colorScheme === 'dark') {
+            setIsDark(true);
+            document.documentElement.classList.add('dark');
+        }
     }
 
-    const loadTelegramData = () => {
-      if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp) {
-        const tg = (window as any).Telegram.WebApp;
-        tg.ready();
-        tg.expand();
-        
-        const tgUser = tg.initDataUnsafe?.user;
-        
-        if (tgUser) {
-          const userId = tgUser.id.toString();
-          const fullName = `${tgUser.first_name || ''} ${tgUser.last_name || ''}`.trim();
-          const finalName = fullName || tgUser.username || `User`;
+    // 3. Fake Loading (Taaki app real lage)
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1500);
 
-          const userRef = doc(db, 'users', userId);
-          
-          onSnapshot(userRef, (docSnap) => {
-            if (docSnap.exists()) {
-              const data = docSnap.data();
-              setUser({
-                id: userId,
-                name: data.firstName || finalName,
-                avatar: tgUser.photo_url || '', 
-                balance: data.balance || 0,
-                currency: 'Points',
-                isBlocked: data.isBlocked || false,
-                isOnboarded: data.isOnboarded || false
-              });
-            } else {
-              setUser(prev => ({
-                ...prev,
-                id: userId,
-                name: finalName,
-                avatar: tgUser.photo_url || ''
-              }));
-            }
-            setIsLoading(false);
-          });
-        } else {
-            setIsLoading(false);
-        }
-      } else {
-          setIsLoading(false);
-      }
-    };
-
-    loadTelegramData();
+    return () => clearTimeout(timer);
   }, []);
 
   const toggleTheme = () => {
@@ -132,20 +77,17 @@ export default function Page() {
       .slice(0, 2);
   };
 
-  const handleOnboardingComplete = async (profileLink: string) => {
-    try {
-        if (user.id !== 'guest') {
-            const userRef = doc(db, 'users', user.id);
-            await updateDoc(userRef, {
-                isOnboarded: true,
-                xProfileLink: profileLink,
-                updatedAt: new Date()
-            });
-            setUser(prev => ({ ...prev, isOnboarded: true }));
-        }
-    } catch (error) {
-        console.error("Error saving onboarding data:", error);
-    }
+  // 4. Onboarding Complete Logic (Local State Update)
+  const handleOnboardingComplete = (profileLink: string) => {
+    console.log("Saving Link locally:", profileLink);
+    
+    // User ko update kar rahe hain (Bina Database ke)
+    setUser(prev => ({ 
+        ...prev, 
+        isOnboarded: true,
+        xProfileLink: profileLink,
+        balance: prev.balance + appConfig.onboardingReward
+    }));
   };
 
   const renderScreen = () => {
@@ -153,7 +95,7 @@ export default function Page() {
       case 'home':
         return <HomeScreen user={user} isDark={isDark} onNavigate={setActiveScreen} />;
       case 'tasks':
-  return <TasksScreen user={user} />;
+        return <TasksScreen user={user} />;
       case 'create':
         return <CreateTaskScreen user={user} />;
       case 'report':
@@ -185,11 +127,11 @@ export default function Page() {
     return <BlockedScreen user={user} />;
   }
 
-  if (!user.isOnboarded && user.id !== 'guest') {
+  if (!user.isOnboarded) {
     return (
       <OnboardingScreen 
         user={user} 
-        rewardAmount={appConfig.onboardingReward || 5} 
+        rewardAmount={appConfig.onboardingReward} 
         onComplete={handleOnboardingComplete} 
       />
     );

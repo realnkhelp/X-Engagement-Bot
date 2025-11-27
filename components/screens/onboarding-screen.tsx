@@ -6,7 +6,7 @@ import { AlertTriangle } from 'lucide-react';
 interface OnboardingScreenProps {
   user: any;
   rewardAmount: number;
-  onComplete: (link: string) => void; // Link pass karne ke liye update kiya
+  onComplete: (link: string) => void;
 }
 
 export default function OnboardingScreen({ user, rewardAmount, onComplete }: OnboardingScreenProps) {
@@ -19,7 +19,6 @@ export default function OnboardingScreen({ user, rewardAmount, onComplete }: Onb
 
   const handleJoin = () => {
     setIsJoined(true);
-    // Yahan apna Telegram channel link dalein
     window.open('https://t.me/realnkhelp', '_blank');
   };
 
@@ -27,31 +26,26 @@ export default function OnboardingScreen({ user, rewardAmount, onComplete }: Onb
     if (!isJoined) return;
     setIsVerifying(true);
     
-    // Fake verification delay (UX ke liye)
     setTimeout(() => {
       setIsVerifying(false);
       setIsVerified(true);
-      setTimeout(() => setStep(2), 500); // 2nd step par auto-move
+      setTimeout(() => setStep(2), 500);
     }, 1500);
   };
 
   const handleLinkSubmit = () => {
     const cleanLink = link.trim();
-    // Validation check
     const isValid = cleanLink.startsWith("https://x.com/") || cleanLink.startsWith("https://twitter.com/");
     
     if (isValid && cleanLink.length > 15) {
-      setError(false);
-      setStep(3); // Success step par jayen
+      setError(false); // Error hatao
+      setStep(3); // Success step
     } else {
-      setError(true);
-      // Error 3 second baad hat jayega
-      setTimeout(() => setError(false), 3000);
+      setError(true); // Error dikhao (Timeout hata diya hai, ab ye nahi hatega)
     }
   };
 
   const handleClaim = () => {
-    // MySQL database mein save karne ke liye link ko parent component bhej rahe hain
     onComplete(link);
   };
 
@@ -60,160 +54,44 @@ export default function OnboardingScreen({ user, rewardAmount, onComplete }: Onb
       <style jsx>{`
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
         
-        .bg-glow {
-            position: absolute;
-            top: 30%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 350px;
-            height: 350px;
-            background: radial-gradient(circle, rgba(0, 200, 255, 0.15) 0%, rgba(100, 50, 255, 0.1) 50%, transparent 70%);
-            filter: blur(60px);
-            z-index: 1;
-            pointer-events: none;
-        }
-        .progress-header {
-            position: absolute;
-            top: 20px;
-            left: 0;
-            width: 100%;
-            padding: 0 20px;
-            display: flex;
-            gap: 8px;
-            z-index: 20;
-        }
-        .progress-segment {
-            flex: 1;
-            height: 4px;
-            background-color: rgba(255, 255, 255, 0.15);
-            border-radius: 2px;
-            transition: background-color 0.4s ease, box-shadow 0.4s ease;
-        }
-        .progress-segment.active {
-            background-color: #ffffff;
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
-        }
-        .page-container {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            padding: 20px;
-            position: relative;
-            z-index: 10;
-            animation: fadeIn 0.5s ease-out;
-        }
+        .bg-glow { position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%); width: 350px; height: 350px; background: radial-gradient(circle, rgba(0, 200, 255, 0.15) 0%, rgba(100, 50, 255, 0.1) 50%, transparent 70%); filter: blur(60px); z-index: 1; pointer-events: none; }
+        .progress-header { position: absolute; top: 20px; left: 0; width: 100%; padding: 0 20px; display: flex; gap: 8px; z-index: 20; }
+        .progress-segment { flex: 1; height: 4px; background-color: rgba(255, 255, 255, 0.15); border-radius: 2px; transition: background-color 0.4s ease, box-shadow 0.4s ease; }
+        .progress-segment.active { background-color: #ffffff; box-shadow: 0 0 10px rgba(255, 255, 255, 0.6); }
+        .page-container { width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; position: relative; z-index: 10; animation: fadeIn 0.5s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
-        @keyframes slideDown { from { transform: translate(-50%, -20px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
         
-        h1 { font-size: 28px; font-weight: 700; margin-bottom: 10px; line-height: 1.2; letter-spacing: -0.5px; }
-        p { font-size: 15px; color: rgba(255, 255, 255, 0.6); line-height: 1.6; margin-bottom: 30px; max-width: 320px; }
+        .icon-p1 { font-size: 80px; margin-bottom: 20px; display: inline-block; filter: drop-shadow(0 0 20px rgba(255,255,255,0.1)); }
         
-        .icon-p1 { font-size: 80px; margin-bottom: 20px; display: inline-block; filter: drop-shadow(0 0 20px rgba(255,255,255,0.1)); animation: float 3s ease-in-out infinite; }
-        
-        .btn-action {
-            background: #ffffff;
-            color: #000;
-            padding: 16px 25px;
-            font-size: 16px;
-            border-radius: 14px;
-            border: none;
-            font-weight: 700;
-            cursor: pointer;
-            width: 100%;
-            max-width: 320px;
-            margin: 8px auto;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            transition: all 0.2s;
-            box-shadow: 0 4px 15px rgba(255,255,255,0.1);
-        }
+        .btn-action { background: #ffffff; color: #000; padding: 16px 25px; font-size: 16px; border-radius: 14px; border: none; font-weight: 700; cursor: pointer; width: 100%; max-width: 320px; margin: 8px auto; display: flex; justify-content: center; align-items: center; transition: all 0.2s; box-shadow: 0 4px 15px rgba(255,255,255,0.1); }
         .btn-action:active { transform: scale(0.98); }
         
-        .btn-verify {
-            background: rgba(255, 255, 255, 0.08);
-            color: #ffffff;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-            box-shadow: none;
-        }
+        .btn-verify { background: rgba(255, 255, 255, 0.08); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); box-shadow: none; }
         .btn-verify.enabled { background: rgba(255, 255, 255, 0.15); border-color: rgba(255, 255, 255, 0.4); }
         
-        /* Error Popup Styling - Fixed to match Screenshot */
-        .error-pill {
-            position: absolute;
-            top: 60px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 90%;
-            max-width: 380px;
-            background: #ef4444; /* Solid Red */
-            border: 1px solid #ff7777;
-            color: #ffffff;
-            padding: 14px 16px;
-            border-radius: 16px;
-            font-size: 13px;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            justify-content: flex-start;
-            gap: 12px;
-            box-shadow: 0 10px 30px rgba(239, 68, 68, 0.4);
-            z-index: 100;
-            animation: slideDown 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            text-align: left;
-            line-height: 1.4;
-        }
+        .error-pill { position: absolute; top: 60px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 380px; background: #ef4444; border: 1px solid #ff7777; color: #ffffff; padding: 14px 16px; border-radius: 16px; font-size: 13px; font-weight: 500; display: flex; align-items: center; justify-content: flex-start; gap: 12px; box-shadow: 0 10px 30px rgba(239, 68, 68, 0.4); z-index: 100; text-align: left; line-height: 1.4; transition: all 0.3s ease; }
         
-        .input-box {
-            width: 100%;
-            max-width: 340px;
-            padding: 18px;
-            background: #151a24;
-            border: 1px solid #2d3442;
-            border-radius: 14px;
-            color: white;
-            font-size: 16px;
-            outline: none;
-            margin-bottom: 24px;
-            transition: 0.3s;
-        }
+        .input-box { width: 100%; max-width: 340px; padding: 18px; background: #151a24; border: 1px solid #2d3442; border-radius: 14px; color: white; font-size: 16px; outline: none; margin-bottom: 24px; transition: 0.3s; }
         .input-box:focus { border-color: #3b82f6; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15); background: #1a202c; }
         .input-error { border-color: #ef4444; box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15); }
         
-        .btn-continue { background: #3b82f6; color: white; box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4); }
+        .btn-continue { background: #3b82f6; color: white; box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4); margin-top: 10px; }
         .btn-continue:hover { background: #2563eb; }
         
-        .coin-wrapper { margin-bottom: 30px; filter: drop-shadow(0 0 35px rgba(255, 215, 0, 0.4)); animation: float 3s ease-in-out infinite; }
-        .btn-gradient {
-            background: linear-gradient(90deg, #4ade80, #facc15, #f472b6, #a855f7);
-            background-size: 200% 200%;
-            animation: gradientMove 4s ease infinite;
-            color: #1a1a1a;
-            font-weight: 800;
-            font-size: 18px;
-            box-shadow: 0 10px 30px rgba(236, 72, 153, 0.3);
-        }
-        @keyframes gradientMove { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        .coin-wrapper { margin-bottom: 30px; filter: drop-shadow(0 0 35px rgba(255, 215, 0, 0.4)); }
+        .btn-gradient { background: linear-gradient(90deg, #4ade80, #facc15, #f472b6, #a855f7); background-size: 200% 200%; color: #1a1a1a; font-weight: 800; font-size: 18px; box-shadow: 0 10px 30px rgba(236, 72, 153, 0.3); }
       `}</style>
 
       <div className="bg-glow"></div>
 
-      {/* Progress Bar */}
       <div className="progress-header">
         <div className={`progress-segment ${step >= 1 ? 'active' : ''}`}></div>
         <div className={`progress-segment ${step >= 2 ? 'active' : ''}`}></div>
         <div className={`progress-segment ${step >= 3 ? 'active' : ''}`}></div>
       </div>
 
-      {/* ERROR POPUP - Global placement */}
       {error && (
-        <div className="error-pill">
+        <div className="error-pill animate-in slide-in-from-top-2 fade-in duration-300">
            <div className="bg-black/20 p-1.5 rounded-full shrink-0">
              <AlertTriangle size={18} fill="currentColor" className="text-white"/>
            </div>
@@ -221,7 +99,6 @@ export default function OnboardingScreen({ user, rewardAmount, onComplete }: Onb
         </div>
       )}
 
-      {/* STEP 1: Join & Verify */}
       {step === 1 && (
         <div className="page-container">
           <div className="icon-p1">📣</div>
@@ -243,10 +120,8 @@ export default function OnboardingScreen({ user, rewardAmount, onComplete }: Onb
         </div>
       )}
 
-      {/* STEP 2: Input X Link */}
       {step === 2 && (
         <div className="page-container">
-          
           <svg width="60" height="60" viewBox="0 0 24 24" fill="white" style={{marginBottom: '25px', marginTop: '20px', filter: 'drop-shadow(0 0 20px rgba(255,255,255,0.3))'}}>
             <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/>
           </svg>
@@ -260,7 +135,7 @@ export default function OnboardingScreen({ user, rewardAmount, onComplete }: Onb
             value={link}
             onChange={(e) => {
                 setLink(e.target.value);
-                if (error) setError(false);
+                // Error tab tak rahega jab tak valid na ho jaye, ya user phir submit na kare
             }}
           />
           
@@ -270,7 +145,6 @@ export default function OnboardingScreen({ user, rewardAmount, onComplete }: Onb
         </div>
       )}
 
-      {/* STEP 3: Reward & Complete */}
       {step === 3 && (
         <div className="page-container">
           <div className="coin-wrapper">
