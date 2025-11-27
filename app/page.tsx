@@ -18,42 +18,55 @@ export default function Page() {
   const [activeScreen, setActiveScreen] = useState<Screen>('home');
   const [isDark, setIsDark] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  
-  // 1. DUMMY USER DATA (Database ki jagah ye use hoga)
-  const [user, setUser] = useState({
-    id: 'demo-user-123',
-    name: 'Demo User',
-    avatar: '', // Khali hai to Initials dikhenge
-    balance: 2500.00,
-    currency: 'Points',
-    isBlocked: false,
-    isOnboarded: false, // Ise niche function se true karenge
-    xProfileLink: ''
-  });
-
-  // Config bhi local bana diya
-  const appConfig = { onboardingReward: 500 };
+  const [user, setUser] = useState<any>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [rewardAmount, setRewardAmount] = useState(500);
 
   useEffect(() => {
-    // 2. Theme Logic (Local Storage se)
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-      setIsDark(true);
-      document.documentElement.classList.add('dark');
-    } else {
-        // Agar Telegram dark mode me hai to auto dark
-        if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.colorScheme === 'dark') {
-            setIsDark(true);
-            document.documentElement.classList.add('dark');
+    const initApp = async () => {
+      let tgUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
+
+      if (!tgUser) {
+        tgUser = { id: 123456789, first_name: 'Test User', username: 'tester' };
+      }
+
+      if (tgUser) {
+        try {
+          const res = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: tgUser.id,
+              first_name: tgUser.first_name,
+              username: tgUser.username
+            })
+          });
+          
+          const data = await res.json();
+          
+          if (data.user) {
+            setUser(data.user);
+            setRewardAmount(Number(data.rewardSetting));
+
+            if (!data.user.twitter_link) {
+              setShowOnboarding(true);
+            }
+          }
+        } catch (error) {
+          console.error("Login Failed", error);
         }
-    }
+      }
 
-    // 3. Fake Loading (Taaki app real lage)
-    const timer = setTimeout(() => {
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme === 'dark') {
+        setIsDark(true);
+        document.documentElement.classList.add('dark');
+      }
+
       setIsLoading(false);
-    }, 1500);
+    };
 
-    return () => clearTimeout(timer);
+    initApp();
   }, []);
 
   const toggleTheme = () => {
@@ -69,25 +82,33 @@ export default function Page() {
   };
 
   const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
+    return name ? name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2) : 'U';
   };
 
-  // 4. Onboarding Complete Logic (Local State Update)
-  const handleOnboardingComplete = (profileLink: string) => {
-    console.log("Saving Link locally:", profileLink);
-    
-    // User ko update kar rahe hain (Bina Database ke)
-    setUser(prev => ({ 
-        ...prev, 
-        isOnboarded: true,
-        xProfileLink: profileLink,
-        balance: prev.balance + appConfig.onboardingReward
-    }));
+  const handleOnboardingComplete = async (profileLink: string) => {
+    try {
+      const res = await fetch('/api/onboarding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          telegram_id: user.telegram_id,
+          twitter_link: profileLink
+        })
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setUser((prev: any) => ({
+          ...prev,
+          twitter_link: profileLink,
+          points: Number(prev.points) + Number(data.added_points)
+        }));
+        setShowOnboarding(false);
+      }
+    } catch (error) {
+      console.error("Onboarding Error", error);
+    }
   };
 
   const renderScreen = () => {
@@ -123,18 +144,22 @@ export default function Page() {
     return <div className="min-h-screen flex items-center justify-center bg-background"><div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>;
   }
 
-  if (user.isBlocked) {
+  if (user && user.is_blocked === 1) {
     return <BlockedScreen user={user} />;
   }
 
-  if (!user.isOnboarded) {
+  if (showOnboarding && user) {
     return (
       <OnboardingScreen 
         user={user} 
-        rewardAmount={appConfig.onboardingReward} 
+        rewardAmount={rewardAmount} 
         onComplete={handleOnboardingComplete} 
       />
     );
+  }
+
+  if (!user) {
+    return <div className="min-h-screen flex items-center justify-center">Loading User Data...</div>;
   }
 
   return (
@@ -147,16 +172,16 @@ export default function Page() {
                 {user.avatar ? (
                   <img
                     src={user.avatar}
-                    alt={user.name}
+                    alt={user.first_name}
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <span>{getInitials(user.name)}</span>
+                  <span>{getInitials(user.first_name)}</span>
                 )}
               </div>
               <div className="flex flex-col justify-center">
-                <p className="font-bold text-sm">{user.name}</p>
-                <p className="text-xs text-muted-foreground">Balance: {user.balance.toFixed(2)}</p>
+                <p className="font-bold text-sm">{user.first_name}</p>
+                <p className="text-xs text-muted-foreground">Points: {Number(user.points).toFixed(2)}</p>
               </div>
             </div>
             <button

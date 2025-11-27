@@ -1,21 +1,21 @@
 import { Headset } from 'lucide-react';
 
 interface BlockedScreenProps {
-  user: {
-    name: string;
-    avatar?: string;
-  };
-  supportContacts?: { name: string; link: string }[];
+  user?: any;
 }
 
-export default function BlockedScreen({ user, supportContacts = [] }: BlockedScreenProps) {
+export default function BlockedScreen({ user }: BlockedScreenProps) {
   
   const defaultContacts = [
     { name: "Contact Nitesh", link: "https://t.me/niteshadmin" },
     { name: "Contact Muzakkir", link: "https://t.me/muzakkir_04" }
   ];
 
-  const contactsToDisplay = supportContacts.length > 0 ? supportContacts : defaultContacts;
+  const firstName = user?.first_name || '';
+  const lastName = user?.last_name || '';
+  const fullName = `${firstName} ${lastName}`.trim() || user?.username || 'User';
+  
+  const displayAvatar = user?.avatar || `https://ui-avatars.com/api/?name=${fullName}&background=random&color=fff`;
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-5 bg-[linear-gradient(135deg,#ffecd2_0%,#fcb69f_100%)]">
@@ -24,14 +24,14 @@ export default function BlockedScreen({ user, supportContacts = [] }: BlockedScr
         <div className="flex flex-col items-center mb-2">
           <div className="relative mb-4">
             <img 
-              src={user.avatar || `https://ui-avatars.com/api/?name=${user.name}&background=random`} 
-              alt={user.name}
+              src={displayAvatar} 
+              alt={fullName}
               className="w-[90px] h-[90px] rounded-full object-cover border-4 border-gray-100 shadow-sm"
             />
           </div>
           
           <h2 className="text-xl font-bold text-gray-800 m-0 mb-1">
-            {user.name}
+            {fullName}
           </h2>
           
           <div className="text-[#d93025] text-sm font-bold uppercase tracking-widest mb-5">
@@ -49,7 +49,7 @@ export default function BlockedScreen({ user, supportContacts = [] }: BlockedScr
         </div>
 
         <div className="flex flex-col gap-3">
-          {contactsToDisplay.map((contact, index) => (
+          {defaultContacts.map((contact, index) => (
             <a 
               key={index}
               href={contact.link}

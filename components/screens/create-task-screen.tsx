@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { ChevronDown, Check, Zap, Wallet, Coins, User } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ChevronDown, Check, Zap, Wallet, Coins } from 'lucide-react';
 
 interface CreateTaskScreenProps {
   user: any;
@@ -10,19 +10,13 @@ interface CreateTaskScreenProps {
 interface CategoryOption {
   id: string;
   label: string;
-  priceUsd: number;
-  pricePoints: number;
+  price_usd: number;
+  price_points: number;
 }
-
-const CATEGORIES: CategoryOption[] = [
-  { id: 'Follow', label: 'Follow', priceUsd: 0.0040, pricePoints: 10 },
-  { id: 'Like', label: 'Like', priceUsd: 0.0030, pricePoints: 5 },
-  { id: 'Retweet', label: 'Retweet', priceUsd: 0.0055, pricePoints: 15 },
-  { id: 'Comment', label: 'Comment', priceUsd: 0.0100, pricePoints: 20 },
-];
 
 export default function CreateTaskScreen({ user }: CreateTaskScreenProps) {
   const [activeTab, setActiveTab] = useState<'add' | 'my'>('add');
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
   
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [showPointsModal, setShowPointsModal] = useState(false);
@@ -30,54 +24,52 @@ export default function CreateTaskScreen({ user }: CreateTaskScreenProps) {
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'TON' | 'USDT'>('USDT');
   const [expandedTaskId, setExpandedTaskId] = useState<number | null>(null);
+  const [myTasks, setMyTasks] = useState<any[]>([]);
+  const [loadingTasks, setLoadingTasks] = useState(false);
   
   const [formData, setFormData] = useState({
-    category: 'Follow',
-    title: '',
+    category: '',
     link: '',
     quantity: 10,
   });
 
   const tonPriceInUsd = 5.20; 
 
-  const myTasks = [
-    {
-      id: 1,
-      taskId: '#1',
-      category: 'Follow',
-      quantity: 100,
-      completedCount: 45,
-      status: 'Open', 
-      completers: [
-        { id: 101, name: 'Priya Singh', username: '@priyasingh', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=30&h=30&fit=crop' },
-        { id: 102, name: 'Amit Patel', username: '@amitpatel', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=30&h=30&fit=crop' },
-      ],
-    },
-    {
-      id: 2,
-      taskId: '#2',
-      category: 'Like',
-      quantity: 50,
-      completedCount: 50,
-      status: 'Closed',
-      completers: [
-        { id: 201, name: 'Rahul Kumar', username: '@rahul_k', avatar: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=30&h=30&fit=crop' },
-      ],
-    },
-  ];
+  useEffect(() => {
+    fetch('/api/categories')
+      .then(res => res.json())
+      .then(data => {
+        setCategories(data);
+        if (data.length > 0) setFormData(prev => ({ ...prev, category: data[0].id }));
+      });
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'my' && user?.telegram_id) {
+      setLoadingTasks(true);
+      fetch(`/api/tasks/my?userId=${user.telegram_id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) setMyTasks(data.tasks);
+          setLoadingTasks(false);
+        });
+    }
+  }, [activeTab, user]);
 
   const getSelectedCategoryData = () => {
-    return CATEGORIES.find(c => c.id === formData.category) || CATEGORIES[0];
+    return categories.find(c => c.id === formData.category) || categories[0];
   };
 
   const calculateTotalUsd = () => {
-    const price = getSelectedCategoryData().priceUsd;
-    return (price * formData.quantity).toFixed(4);
+    const data = getSelectedCategoryData();
+    if (!data) return "0.00";
+    return (data.price_usd * formData.quantity).toFixed(4);
   };
 
   const calculateTotalPoints = () => {
-    const points = getSelectedCategoryData().pricePoints;
-    return points * formData.quantity;
+    const data = getSelectedCategoryData();
+    if (!data) return 0;
+    return data.price_points * formData.quantity;
   };
 
   const getTonAmount = () => {
@@ -90,26 +82,45 @@ export default function CreateTaskScreen({ user }: CreateTaskScreenProps) {
     setIsDropdownOpen(false);
   };
 
-  const handlePointsPayment = () => {
-    console.log(`Processing Points Payment: ${calculateTotalPoints()} Points`);
-    setShowPointsModal(false);
+  const handlePointsPayment = async () => {
+    try {
+      const res = await fetch('/api/tasks/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.telegram_id,
+          category_id: formData.category,
+          link: formData.link,
+          quantity: formData.quantity,
+          total_points: calculateTotalPoints()
+        })
+      });
+      
+      const data = await res.json();
+      if (data.success) {
+        alert('Task Created Successfully!');
+        setShowPointsModal(false);
+        setActiveTab('my');
+      } else {
+        alert(data.error || 'Failed to create task');
+      }
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const handleCryptoPayment = () => {
-    if (selectedPaymentMethod === 'TON') {
-      console.log(`Processing TON Payment: ${getTonAmount()} TON (Value: $${calculateTotalUsd()})`);
-    } else {
-      console.log(`Processing USDT Payment: ${calculateTotalUsd()} USDT`);
-    }
+    alert('Crypto Payment Integration Pending');
     setShowCryptoModal(false);
   };
 
   const toggleTaskView = (id: number) => {
-    if (expandedTaskId === id) {
-      setExpandedTaskId(null);
-    } else {
-      setExpandedTaskId(id);
-    }
+    setExpandedTaskId(expandedTaskId === id ? null : id);
+  };
+
+  const openCompleterLink = (link: string) => {
+    if (link) window.open(link, '_blank');
+    else alert('No Twitter link linked');
   };
 
   return (
@@ -138,7 +149,7 @@ export default function CreateTaskScreen({ user }: CreateTaskScreenProps) {
       </div>
 
       {activeTab === 'add' && (
-              <div className="space-y-4 pb-4 animate-in fade-in slide-in-from-bottom-2">
+        <div className="space-y-4 pb-4 animate-in fade-in slide-in-from-bottom-2">
           <div className="bg-card border border-border rounded-xl p-4 space-y-4">
             
             <div className="relative">
@@ -148,13 +159,13 @@ export default function CreateTaskScreen({ user }: CreateTaskScreenProps) {
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="w-full px-4 py-3.5 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-between"
               >
-                <span className="font-medium">{formData.category}</span>
+                <span className="font-medium">{categories.find(c => c.id === formData.category)?.label || 'Loading...'}</span>
                 <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {isDropdownOpen && (
                 <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-xl shadow-xl z-50 p-1.5 animate-in zoom-in-95 duration-200">
-                  {CATEGORIES.map((cat) => (
+                  {categories.map((cat) => (
                     <button
                       key={cat.id}
                       type="button"
@@ -175,17 +186,6 @@ export default function CreateTaskScreen({ user }: CreateTaskScreenProps) {
                   ))}
                 </div>
               )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold mb-2">Task Title</label>
-              <input
-                type="text"
-                placeholder="e.g., Follow our account"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
             </div>
 
             <div>
@@ -230,7 +230,7 @@ export default function CreateTaskScreen({ user }: CreateTaskScreenProps) {
                   }
                   setShowPointsModal(true);
                 }}
-                                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold hover:opacity-90 transition flex items-center justify-center gap-2 shadow-lg shadow-orange-500/20"
+                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold hover:opacity-90 transition flex items-center justify-center gap-2 shadow-lg shadow-orange-500/20"
               >
                 <Coins className="w-5 h-5" />
                 Create with {calculateTotalPoints()} Points
@@ -258,82 +258,91 @@ export default function CreateTaskScreen({ user }: CreateTaskScreenProps) {
 
       {activeTab === 'my' && (
         <div className="space-y-4 pb-4">
-          {myTasks.map((task) => {
-            const isFinished = task.completedCount >= task.quantity;
-            
-            return (
-              <div key={task.id} className="bg-card border border-border rounded-xl p-4 shadow-sm space-y-4">
-                
-                <div className="flex justify-between items-start">
-                  <div className="flex gap-3">
-                    <div className="w-12 h-12 rounded-full bg-gray-200 overflow-hidden shrink-0">
-                       <img 
-                         src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80&h=80&fit=crop" 
-                         alt="User"
-                         className="w-full h-full object-cover"
-                       />
+          {loadingTasks ? (
+            <div className="text-center py-10 text-muted-foreground">Loading My Tasks...</div>
+          ) : myTasks.length === 0 ? (
+            <div className="text-center py-10 text-muted-foreground">No tasks created yet.</div>
+          ) : (
+            myTasks.map((task) => {
+              const isFinished = task.completed_count >= task.quantity;
+              
+              return (
+                <div key={task.id} className="bg-card border border-border rounded-xl p-4 shadow-sm space-y-4">
+                  
+                  <div className="flex justify-between items-start">
+                    <div className="flex gap-3">
+                      <div className="w-12 h-12 rounded-full bg-gray-200 overflow-hidden shrink-0">
+                         <img 
+                           src={task.avatar || user?.avatar || "https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png"} 
+                           alt="User"
+                           className="w-full h-full object-cover"
+                         />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-lg leading-tight">{task.first_name || user?.first_name}</h3>
+                        
+                        {isFinished ? (
+                           <span className="text-green-600 font-bold text-sm">Completed</span>
+                        ) : (
+                           <span className="text-blue-600 font-bold text-sm">
+                             {task.completed_count}/{task.quantity} Progress
+                           </span>
+                        )}
+                        
+                        <p className="text-sm text-muted-foreground mt-1 font-medium">
+                          TASK ID: #{task.id} {task.category_id}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-bold text-lg leading-tight">Nitesh Kumar</h3>
-                      
-                      {isFinished ? (
-                         <span className="text-green-600 font-bold text-sm">Completed</span>
-                      ) : (
-                         <span className="text-blue-600 font-bold text-sm">
-                           {task.completedCount}/{task.quantity} Progress
-                         </span>
-                      )}
-                      
-                      <p className="text-sm text-muted-foreground mt-1 font-medium">
-                        TASK ID: {task.taskId} {task.category}
-                      </p>
+
+                    <div className={`px-3 py-1 rounded-full text-xs font-bold ${
+                      isFinished 
+                        ? 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400' 
+                        : 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
+                    }`}>
+                      {isFinished ? 'Closed' : 'Open'}
                     </div>
                   </div>
 
-                  <div className={`px-3 py-1 rounded-full text-xs font-bold ${
-                    isFinished 
-                      ? 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400' 
-                      : 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
-                  }`}>
-                    {isFinished ? 'Closed' : 'Open'}
-                  </div>
-                </div>
+                  <button 
+                    onClick={() => toggleTaskView(task.id)}
+                    className="w-full py-2.5 rounded-lg border border-blue-200 text-blue-600 font-semibold hover:bg-blue-50 dark:border-blue-800 dark:hover:bg-blue-900/20 transition"
+                  >
+                    {expandedTaskId === task.id ? 'Hide Details' : 'View'}
+                  </button>
 
-                <button 
-                  onClick={() => toggleTaskView(task.id)}
-                  className="w-full py-2.5 rounded-lg border border-blue-200 text-blue-600 font-semibold hover:bg-blue-50 dark:border-blue-800 dark:hover:bg-blue-900/20 transition"
-                >
-                  {expandedTaskId === task.id ? 'Hide Details' : 'View'}
-                </button>
-
-                {expandedTaskId === task.id && (
-                  <div className="pt-2 border-t border-border animate-in slide-in-from-top-2">
-                    <h4 className="text-sm font-semibold mb-3 text-muted-foreground">Completers List ({task.completers.length})</h4>
-                    <div className="space-y-3">
-                      {task.completers.map((completer) => (
-                        <div key={completer.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
-                          <div className="flex items-center gap-3">
-                            <img 
-                              src={completer.avatar} 
-                              alt={completer.name}
-                              className="w-9 h-9 rounded-full object-cover"
-                            />
-                            <div>
-                              <p className="font-semibold text-sm">{completer.name}</p>
-                              <p className="text-xs text-muted-foreground">{completer.username}</p>
+                  {expandedTaskId === task.id && (
+                    <div className="pt-2 border-t border-border animate-in slide-in-from-top-2">
+                      <h4 className="text-sm font-semibold mb-3 text-muted-foreground">Completers List ({task.completers?.length || 0})</h4>
+                      <div className="space-y-3">
+                        {task.completers?.map((completer: any, index: number) => (
+                          <div key={index} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
+                            <div className="flex items-center gap-3">
+                              <img 
+                                src={completer.avatar || "https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png"} 
+                                alt={completer.name}
+                                className="w-9 h-9 rounded-full object-cover"
+                              />
+                              <div>
+                                <p className="font-semibold text-sm">{completer.name}</p>
+                                <p className="text-xs text-muted-foreground">{completer.username}</p>
+                              </div>
                             </div>
+                            <button 
+                              onClick={() => openCompleterLink(completer.twitter_link)}
+                              className="px-4 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-md hover:bg-blue-700 transition"
+                            >
+                              View
+                            </button>
                           </div>
-                          <button className="px-4 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-md hover:bg-blue-700 transition">
-                            View
-                          </button>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                  )}
+                </div>
+              );
+            })
+          )}
         </div>
       )}
 
@@ -344,7 +353,7 @@ export default function CreateTaskScreen({ user }: CreateTaskScreenProps) {
               <div className="w-16 h-16 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Coins className="w-8 h-8 text-yellow-600 dark:text-yellow-400" />
               </div>
-                            <h2 className="font-bold text-xl">Confirm Points Payment</h2>
+              <h2 className="font-bold text-xl">Confirm Points Payment</h2>
               <p className="text-muted-foreground text-sm">
                 You are about to deduct <span className="font-bold text-foreground">{calculateTotalPoints()} Points</span> from your balance to create this task.
               </p>
@@ -355,7 +364,7 @@ export default function CreateTaskScreen({ user }: CreateTaskScreenProps) {
                 onClick={handlePointsPayment}
                 className="w-full py-3.5 rounded-xl bg-yellow-500 hover:bg-yellow-600 text-white font-bold transition shadow-lg shadow-yellow-500/20"
               >
-                                Pay {calculateTotalPoints()} Points
+                Pay {calculateTotalPoints()} Points
               </button>
               <button
                 onClick={() => setShowPointsModal(false)}

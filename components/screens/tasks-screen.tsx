@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CheckCircle, ExternalLink, Clock } from 'lucide-react';
 
 interface TasksScreenProps {
@@ -7,11 +7,11 @@ interface TasksScreenProps {
 
 interface Task {
   id: number;
-  username: string;
-  category: 'Follow' | 'Engagement' | 'Like' | 'Retweet';
-  avatar: string;
-  progress: number;
-  totalNeeded: number;
+  creator_name: string;
+  category: string;
+  creator_avatar: string;
+  completed_count: number;
+  quantity: number;
   reward: number;
   type: 'user' | 'admin';
   link: string;
@@ -19,43 +19,29 @@ interface Task {
 
 export default function TasksScreen({ user }: TasksScreenProps) {
   const [activeTab, setActiveTab] = useState<'user' | 'admin'>('user');
-  const [verifyingTasks, setVerifyingTasks] = useState<{ [key: number]: 'idle' | 'waiting' | 'ready' }>({});
-  
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: 1,
-      username: 'Nitesh Kumar',
-      category: 'Follow',
-      avatar: '[https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80&h=80&fit=crop](https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80&h=80&fit=crop)',
-      progress: 45,
-      totalNeeded: 100,
-      reward: 500,
-      type: 'user',
-      link: '[https://twitter.com](https://twitter.com)',
-    },
-    {
-      id: 2,
-      username: 'Priya Singh',
-      category: 'Engagement',
-      avatar: '[https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&h=80&fit=crop](https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&h=80&fit=crop)',
-      progress: 32,
-      totalNeeded: 50,
-      reward: 250,
-      type: 'user',
-      link: '[https://twitter.com](https://twitter.com)',
-    },
-    {
-      id: 3,
-      username: 'System Admin',
-      category: 'Follow',
-      avatar: '[https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&h=80&fit=crop](https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&h=80&fit=crop)',
-      progress: 12,
-      totalNeeded: 20,
-      reward: 1000,
-      type: 'admin',
-      link: '[https://twitter.com](https://twitter.com)',
-    },
-  ]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [verifyingTasks, setVerifyingTasks] = useState<{ [key: number]: 'idle' | 'waiting' | 'ready' | 'verifying' }>({});
+
+  useEffect(() => {
+    if (user?.telegram_id) {
+      fetchTasks();
+    }
+  }, [user]);
+
+  const fetchTasks = async () => {
+    try {
+      const res = await fetch(`/api/tasks?userId=${user.telegram_id}`);
+      const data = await res.json();
+      if (data.success) {
+        setTasks(data.tasks);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleOpenTask = (taskId: number, link: string) => {
     window.open(link, '_blank');
@@ -64,23 +50,42 @@ export default function TasksScreen({ user }: TasksScreenProps) {
 
     setTimeout(() => {
       setVerifyingTasks(prev => ({ ...prev, [taskId]: 'ready' }));
-    }, 5000); // 5 second demo delay
+    }, 10000);
   };
 
-  const handleVerifyTask = (taskId: number) => {
-    // List se task hatao
-    setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
-    
-    const task = tasks.find(t => t.id === taskId);
-    const myProfileLink = user?.xProfileLink || 'No Link Set'; 
+  const handleVerifyTask = async (taskId: number) => {
+    setVerifyingTasks(prev => ({ ...prev, [taskId]: 'verifying' }));
 
-    if (task) {
-      // Demo Alert
-      alert(`[DEMO MODE] Task Verified!\nUser: ${user.name}\nX Link: ${myProfileLink}\nPoints Added: ${task.reward}`);
+    try {
+      const res = await fetch('/api/tasks/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.telegram_id,
+          taskId: taskId
+        })
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
+        alert(`Task Verified! You earned ${data.reward} Points.`);
+      } else {
+        alert('Verification Failed. Please try again.');
+        setVerifyingTasks(prev => ({ ...prev, [taskId]: 'ready' }));
+      }
+    } catch (error) {
+      console.error(error);
+      setVerifyingTasks(prev => ({ ...prev, [taskId]: 'ready' }));
     }
   };
 
   const filteredTasks = tasks.filter(task => task.type === activeTab);
+
+  if (loading) {
+    return <div className="p-10 text-center text-muted-foreground">Loading Tasks...</div>;
+  }
 
   return (
     <div className="px-4 py-6 space-y-4">
@@ -93,7 +98,7 @@ export default function TasksScreen({ user }: TasksScreenProps) {
               : 'text-muted-foreground'
           }`}
         >
-          User List
+          User Tasks
         </button>
         <button
           onClick={() => setActiveTab('admin')}
@@ -103,14 +108,14 @@ export default function TasksScreen({ user }: TasksScreenProps) {
               : 'text-muted-foreground'
           }`}
         >
-          Admin List
+          Admin Tasks
         </button>
       </div>
 
       <div className="space-y-3 pb-4">
         {filteredTasks.length === 0 ? (
           <div className="text-center py-10 text-muted-foreground">
-            No tasks available
+            No tasks available in this category.
           </div>
         ) : (
           filteredTasks.map((task) => {
@@ -124,12 +129,12 @@ export default function TasksScreen({ user }: TasksScreenProps) {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <img
-                      src={task.avatar}
-                      alt={task.username}
+                      src={task.creator_avatar || "https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png"}
+                      alt="User"
                       className="w-12 h-12 rounded-full object-cover bg-gray-200"
                     />
                     <div>
-                      <p className="font-bold text-base">{task.username}</p>
+                      <p className="font-bold text-base">{task.creator_name || 'Admin Task'}</p>
                       <p className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md inline-block mt-1">
                         {task.category}
                       </p>
@@ -140,12 +145,12 @@ export default function TasksScreen({ user }: TasksScreenProps) {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Progress</span>
-                    <span className="font-semibold">{task.progress}/{task.totalNeeded}</span>
+                    <span className="font-semibold">{task.completed_count}/{task.quantity}</span>
                   </div>
                   <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                     <div
                       className="h-full bg-blue-500 rounded-full transition-all"
-                      style={{ width: `${(task.progress / task.totalNeeded) * 100}%` }}
+                      style={{ width: `${(task.completed_count / task.quantity) * 100}%` }}
                     />
                   </div>
                 </div>
@@ -176,8 +181,10 @@ export default function TasksScreen({ user }: TasksScreenProps) {
                     {status === 'waiting' ? (
                       <>
                         <Clock className="w-4 h-4 animate-pulse" />
-                        Wait...
+                        Wait 10s
                       </>
+                    ) : status === 'verifying' ? (
+                      <>Checking...</>
                     ) : (
                       <>
                         <CheckCircle className="w-4 h-4" />

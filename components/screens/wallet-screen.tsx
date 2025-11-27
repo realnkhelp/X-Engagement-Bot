@@ -1,23 +1,24 @@
 import { useState, useEffect } from 'react';
-import { Download, TrendingUp, Copy, Check, X, ChevronRight, RefreshCw, Send, Plus, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { Download, TrendingUp, Copy, Check, X, ChevronRight, RefreshCw, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 
-const initialUserAssets = [
-  { id: 1, name: 'Toncoin', symbol: 'TON', balance: 12.5, logo: 'https://cryptologos.cc/logos/toncoin-ton-logo.png?v=026' },
-  { id: 2, name: 'Tether', symbol: 'USDT', balance: 2500.00, logo: 'https://cryptologos.cc/logos/tether-usdt-logo.png?v=026' },
-  { id: 3, name: 'Bitcoin', symbol: 'BTC', balance: 0.00045, logo: 'https://cryptologos.cc/logos/bitcoin-btc-logo.png?v=026' },
-];
+interface WalletScreenProps {
+  user: any;
+}
 
 const paymentMethods = [
   { id: 'ton', name: 'TON', symbol: 'TON', address: 'UQBvW8Z...ExampleTonAddress', minDeposit: 1 },
   { id: 'usdt', name: 'USDT BEP20', symbol: 'USDT', address: '0x22b55ccc532d4ad62895975e6fe4542a6699bcc9', minDeposit: 5 },
 ];
 
-export default function WalletScreen() {
+export default function WalletScreen({ user }: WalletScreenProps) {
   const [activeTab, setActiveTab] = useState<'deposit' | 'transactions'>('deposit');
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState<any>(null);
   
-  const [assets, setAssets] = useState(initialUserAssets);
+  const [assets, setAssets] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [totalBalance, setTotalBalance] = useState(0);
+  
   const [prices, setPrices] = useState<{ [key: string]: { price: number, change: number } }>({});
   const [isLoading, setIsLoading] = useState(true);
   
@@ -27,16 +28,29 @@ export default function WalletScreen() {
   const [copied, setCopied] = useState(false);
   const [showErrorAlert, setShowErrorAlert] = useState<string | null>(null);
 
-  const depositHistory = [
-    { id: 1, amount: 500, method: 'USDT', date: '2025-01-18', status: 'Completed', reason: null },
-    { id: 2, amount: 25, method: 'TON', date: '2025-01-17', status: 'Pending', reason: null },
-    { id: 3, amount: 100, method: 'USDT', date: '2025-01-16', status: 'Rejected', reason: 'Fake Transaction' },
-  ];
+  useEffect(() => {
+    if (user?.telegram_id) {
+      fetchWalletData();
+    }
+    fetchLivePrices();
+    const interval = setInterval(fetchLivePrices, 10000);
+    return () => clearInterval(interval);
+  }, [user]);
 
-  const transactions = [
-    { id: 1, type: 'Task Payment', amount: +0.45, date: '2025-01-18', status: 'Completed' },
-    { id: 2, type: 'Task Payment', amount: +0.30, date: '2025-01-17', status: 'Completed' },
-  ];
+  const fetchWalletData = async () => {
+    try {
+      const res = await fetch(`/api/wallet?userId=${user.telegram_id}`);
+      const data = await res.json();
+      if (data.success) {
+        setAssets(data.assets);
+        setTransactions(data.history);
+        setTotalBalance(Number(data.balance));
+      }
+      setIsLoading(false);
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   const fetchLivePrices = async () => {
     try {
@@ -52,17 +66,10 @@ export default function WalletScreen() {
       });
       
       setPrices(priceMap);
-      setIsLoading(false);
     } catch (error) {
       console.error("Error fetching prices", error);
     }
   };
-
-  useEffect(() => {
-    fetchLivePrices();
-    const interval = setInterval(fetchLivePrices, 5000);
-    return () => clearInterval(interval);
-  }, []);
 
   const totalPortfolioValue = assets.reduce((total, asset) => {
     const liveData = asset.symbol === 'USDT' ? { price: 1 } : (prices[`${asset.symbol}USDT`] || { price: 0 });
@@ -75,7 +82,7 @@ export default function WalletScreen() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleDepositSubmit = () => {
+  const handleDepositSubmit = async () => {
     if (!depositAmount) {
         setAmountError(true);
         return;
@@ -89,12 +96,33 @@ export default function WalletScreen() {
       return;
     }
     
-    setAmountError(false);
-    setShowDepositModal(false);
-    setSelectedMethod(null);
-    setDepositAmount('');
-    setDepositTxid('');
+    try {
+      const res = await fetch('/api/wallet/deposit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.telegram_id,
+          amount: amount,
+          method: selectedMethod.symbol,
+          txid: depositTxid
+        })
+      });
+
+      if (res.ok) {
+        alert('Deposit Request Submitted!');
+        fetchWalletData();
+        setShowDepositModal(false);
+        setSelectedMethod(null);
+        setDepositAmount('');
+        setDepositTxid('');
+      }
+    } catch (error) {
+      alert('Failed to submit deposit');
+    }
   };
+
+  const depositHistory = transactions.filter(t => t.type === 'Deposit');
+  const otherTransactions = transactions.filter(t => t.type !== 'Deposit');
 
   return (
     <div className="px-4 py-6 space-y-6 pb-24 bg-background min-h-screen">
@@ -134,7 +162,7 @@ export default function WalletScreen() {
             ? { price: 1, change: 0.01 } 
             : (prices[pairSymbol] || { price: 0, change: 0 });
             
-          const valueInUsd = asset.balance * marketData.price;
+          const valueInUsd = Number(asset.balance) * marketData.price;
           const isPriceLoaded = marketData.price > 0;
           const isPositive = marketData.change >= 0;
 
@@ -163,7 +191,7 @@ export default function WalletScreen() {
               </div>
               
               <div className="text-right">
-                <p className="font-bold text-lg">{asset.balance} {asset.symbol}</p>
+                <p className="font-bold text-lg">{Number(asset.balance).toFixed(4)} {asset.symbol}</p>
                 <p className="text-xs text-muted-foreground font-medium">
                   ≈ ${valueInUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
@@ -198,6 +226,7 @@ export default function WalletScreen() {
 
       <div className="space-y-3">
         {activeTab === 'deposit' ? (
+          depositHistory.length === 0 ? <p className="text-center text-muted-foreground p-4">No deposits yet</p> :
           depositHistory.map((item) => (
             <div key={item.id} className="flex flex-col p-4 rounded-xl border border-border bg-card">
               <div className="flex items-center justify-between w-full">
@@ -206,8 +235,8 @@ export default function WalletScreen() {
                     <Download className="w-5 h-5 text-green-600" />
                   </div>
                   <div>
-                                        <p className="font-semibold text-sm">{item.method} Deposit</p>
-                    <p className="text-xs text-muted-foreground">{item.date}</p>
+                    <p className="font-semibold text-sm">{item.method} Deposit</p>
+                    <p className="text-xs text-muted-foreground">{new Date(item.created_at).toLocaleDateString()}</p>
                   </div>
                 </div>
                 <div className="text-right">
@@ -231,22 +260,23 @@ export default function WalletScreen() {
             </div>
           ))
         ) : (
-          transactions.map((item) => (
+          otherTransactions.length === 0 ? <p className="text-center text-muted-foreground p-4">No transactions yet</p> :
+          otherTransactions.map((item) => (
             <div key={item.id} className="flex items-center justify-between p-4 rounded-xl border border-border bg-card">
               <div className="flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                  item.amount > 0 ? 'bg-green-500/10' : 'bg-red-500/10'
+                  item.type !== 'Task Creation' ? 'bg-green-500/10' : 'bg-red-500/10'
                 }`}>
-                  <TrendingUp className={`w-5 h-5 ${item.amount > 0 ? 'text-green-600' : 'text-red-500'}`} />
+                  <TrendingUp className={`w-5 h-5 ${item.type !== 'Task Creation' ? 'text-green-600' : 'text-red-500'}`} />
                 </div>
                 <div>
                   <p className="font-semibold text-sm">{item.type}</p>
-                  <p className="text-xs text-muted-foreground">{item.date}</p>
+                  <p className="text-xs text-muted-foreground">{new Date(item.created_at).toLocaleDateString()}</p>
                 </div>
               </div>
               <div className="text-right">
-                <p className={`font-bold ${item.amount > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                  {item.amount > 0 ? '+' : ''}{item.amount}
+                <p className={`font-bold ${item.type !== 'Task Creation' ? 'text-green-600' : 'text-red-500'}`}>
+                  {item.type !== 'Task Creation' ? '+' : '-'}{item.amount}
                 </p>
                 <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{item.status}</p>
               </div>
