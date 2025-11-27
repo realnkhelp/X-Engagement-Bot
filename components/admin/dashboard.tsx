@@ -12,6 +12,12 @@ interface DashboardProps {
 
 export default function AdminDashboard({ onNavigate }: DashboardProps) {
   const [isDark, setIsDark] = useState(false);
+  const [dbStats, setDbStats] = useState({
+    totalUsers: 0,
+    pendingDeposits: 0,
+    activeTasks: 0,
+    totalUserBalance: 0
+  });
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
@@ -19,6 +25,22 @@ export default function AdminDashboard({ onNavigate }: DashboardProps) {
       setIsDark(true);
       document.documentElement.classList.add('dark');
     }
+
+    const fetchStats = async () => {
+      try {
+        const res = await fetch('/api/admin/stats');
+        const data = await res.json();
+        if (data.success) {
+          setDbStats(data.stats);
+        }
+      } catch (error) {
+        console.error("Failed to fetch dashboard stats", error);
+      }
+    };
+
+    fetchStats();
+    const interval = setInterval(fetchStats, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const toggleTheme = () => {
@@ -36,56 +58,56 @@ export default function AdminDashboard({ onNavigate }: DashboardProps) {
   const stats = [
     {
       title: 'Total Users',
-      value: '1,234',
+      value: dbStats.totalUsers.toLocaleString(),
       icon: Users,
       color: 'bg-blue-500',
       targetTab: 'users'
     },
     {
       title: 'Active Tasks',
-      value: '456',
+      value: dbStats.activeTasks.toLocaleString(),
       icon: Briefcase,
       color: 'bg-green-500',
       targetTab: 'tasks'
     },
     {
       title: 'Total Reports',
-      value: '23',
+      value: 'View',
       icon: FileText,
       color: 'bg-red-500',
       targetTab: 'reports'
     },
     {
       title: 'Pending Deposits',
-      value: '15',
+      value: dbStats.pendingDeposits.toLocaleString(),
       icon: Clock,
-      color: 'bg-orange-500',
+      color: dbStats.pendingDeposits > 0 ? 'bg-orange-500 animate-pulse' : 'bg-orange-500',
       targetTab: 'deposit-history'
     },
     {
-      title: 'Total Revenue',
-      value: '$12,450',
+      title: 'Users Liability',
+      value: `$${Number(dbStats.totalUserBalance).toFixed(2)}`,
       icon: DollarSign,
       color: 'bg-purple-500',
       targetTab: 'deposit-history'
     },
     {
       title: 'Payment Methods',
-      value: '4',
+      value: '2',
       icon: CreditCard,
       color: 'bg-indigo-500',
       targetTab: 'payments'
     },
     {
       title: 'Total Admins',
-      value: '3',
+      value: '1',
       icon: Shield,
       color: 'bg-gray-600',
       targetTab: 'manage-admins'
     },
     {
       title: 'Active Users',
-      value: '892',
+      value: dbStats.totalUsers.toLocaleString(),
       icon: Users,
       color: 'bg-teal-500',
       targetTab: 'users'
@@ -93,10 +115,9 @@ export default function AdminDashboard({ onNavigate }: DashboardProps) {
   ];
 
   const todayRecords = [
-    { type: 'Joined User', count: 12 },
-    { type: 'Deposit Request', count: 8 },
-    { type: 'Task Created', count: 23 },
-    { type: 'Report', count: 3 },
+    { type: 'Pending Deposits', count: dbStats.pendingDeposits },
+    { type: 'Active Tasks', count: dbStats.activeTasks },
+    { type: 'Total Users', count: dbStats.totalUsers },
   ];
 
   return (
@@ -138,7 +159,7 @@ export default function AdminDashboard({ onNavigate }: DashboardProps) {
       </div>
 
       <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
-        <h2 className="text-xl font-bold mb-4">Today's Records</h2>
+        <h2 className="text-xl font-bold mb-4">Live Overview</h2>
         <div className="space-y-3">
           {todayRecords.map((record, idx) => (
             <div

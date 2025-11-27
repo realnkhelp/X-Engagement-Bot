@@ -1,77 +1,35 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Shield, UserPlus, Trash2, Pencil, Activity, Lock, Users, Clock, CheckCircle, XCircle } from 'lucide-react';
 
 type Role = 'Super Admin' | 'Moderator';
 type Status = 'Active' | 'Blocked';
 
 interface Admin {
-  id: string;
+  id: number;
   name: string;
   username: string;
   role: Role;
   status: Status;
-  lastLogin: string;
+  last_login: string;
 }
 
-interface ActivityLog {
-  id: string;
-  adminName: string;
-  date: string;
+interface Log {
+  id: number;
+  admin_name: string;
+  role: string;
   action: string;
-  targetUser: string;
+  target: string;
   details: string;
+  created_at: string;
 }
 
 export default function AdminManagementPage() {
   const [activeTab, setActiveTab] = useState<'admins' | 'logs'>('admins');
-
-  const [admins, setAdmins] = useState<Admin[]>([
-    {
-      id: '1',
-      name: 'Nitesh Kumar',
-      username: 'nitesh_dev',
-      role: 'Super Admin',
-      status: 'Active',
-      lastLogin: 'Today, 10:30 AM',
-    },
-    {
-      id: '2',
-      name: 'Rahul Singh',
-      username: 'rahul_mod',
-      role: 'Moderator',
-      status: 'Active',
-      lastLogin: 'Yesterday, 5:00 PM',
-    },
-  ]);
-
-  const [logs] = useState<ActivityLog[]>([
-    {
-      id: '101',
-      adminName: 'Nitesh (Super Admin)',
-      date: '23 Nov 2025, 10:30 AM',
-      action: 'Updated Balance',
-      targetUser: '@Rahul123',
-      details: 'Added 50 USDT',
-    },
-    {
-      id: '102',
-      adminName: 'Rahul (Moderator)',
-      date: '23 Nov 2025, 09:15 AM',
-      action: 'Blocked User',
-      targetUser: '@Spammer007',
-      details: 'Violation of rules',
-    },
-    {
-      id: '103',
-      adminName: 'Nitesh (Super Admin)',
-      date: '22 Nov 2025, 08:45 PM',
-      action: 'Approved Deposit',
-      targetUser: '@CryptoKing',
-      details: 'TxID: 0x55d... (500 USDT)',
-    },
-  ]);
+  const [admins, setAdmins] = useState<Admin[]>([]);
+  const [logs, setLogs] = useState<Log[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -80,35 +38,96 @@ export default function AdminManagementPage() {
     role: 'Moderator' as Role,
   });
 
-  const handleCreateAdmin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.name || !formData.username || !formData.password) return;
+  useEffect(() => {
+    fetchAdmins();
+    if (activeTab === 'logs') {
+      fetchLogs();
+    }
+  }, [activeTab]);
 
-    const newAdmin: Admin = {
-      id: Date.now().toString(),
-      name: formData.name,
-      username: formData.username,
-      role: formData.role,
-      status: 'Active',
-      lastLogin: 'Never',
-    };
-
-    setAdmins([...admins, newAdmin]);
-    setFormData({ name: '', username: '', password: '', role: 'Moderator' });
-    alert('New admin created successfully!');
-  };
-
-  const handleDeleteAdmin = (id: string) => {
-    if (confirm('Are you sure you want to remove this admin?')) {
-      setAdmins(admins.filter((a) => a.id !== id));
+  const fetchAdmins = async () => {
+    try {
+      const res = await fetch('/api/admin/admins');
+      const data = await res.json();
+      if (data.success) {
+        setAdmins(data.admins);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const toggleStatus = (id: string) => {
-    setAdmins(admins.map(a => 
-      a.id === id ? { ...a, status: a.status === 'Active' ? 'Blocked' : 'Active' } : a
-    ));
+  const fetchLogs = async () => {
+    try {
+      const res = await fetch('/api/admin/logs');
+      const data = await res.json();
+      if (data.success) {
+        const formattedLogs = data.logs.map((log: any) => ({
+          ...log,
+          created_at: new Date(log.created_at).toLocaleString()
+        }));
+        setLogs(formattedLogs);
+      }
+    } catch (error) {
+      console.error(error);
+    }
   };
+
+  const handleCreateAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name || !formData.username || !formData.password) return;
+
+    try {
+      const res = await fetch('/api/admin/admins', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      if (res.ok) {
+        alert('New admin created successfully!');
+        setFormData({ name: '', username: '', password: '', role: 'Moderator' });
+        fetchAdmins();
+      } else {
+        alert('Failed to create admin');
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleDeleteAdmin = async (id: number) => {
+    if (confirm('Are you sure you want to remove this admin?')) {
+      try {
+        await fetch('/api/admin/admins', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id })
+        });
+        fetchAdmins();
+      } catch (error) {
+        alert('Failed to delete');
+      }
+    }
+  };
+
+  const toggleStatus = async (admin: Admin) => {
+    const newStatus = admin.status === 'Active' ? 'Blocked' : 'Active';
+    try {
+      await fetch('/api/admin/admins', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: admin.id, status: newStatus })
+      });
+      fetchAdmins();
+    } catch (error) {
+      alert('Failed to update status');
+    }
+  };
+
+  if (loading && activeTab === 'admins') return <div className="p-10 text-center text-muted-foreground">Loading...</div>;
 
   return (
     <div className="p-4 space-y-6 pb-24">
@@ -177,7 +196,7 @@ export default function AdminManagementPage() {
                 <div className="relative">
                   <Lock className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
                   <input
-                                      type="password"
+                    type="password"
                     placeholder="••••••••"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -209,7 +228,7 @@ export default function AdminManagementPage() {
 
           <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
              <div className="p-4 border-b border-border bg-muted/30">
-              <h3 className="font-semibold">All Admins</h3>
+              <h3 className="font-semibold">All Admins ({admins.length})</h3>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-left">
@@ -239,7 +258,7 @@ export default function AdminManagementPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <button onClick={() => toggleStatus(admin.id)} className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium border ${
+                        <button onClick={() => toggleStatus(admin)} className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium border ${
                           admin.status === 'Active' 
                             ? 'bg-green-50 text-green-700 border-green-200' 
                             : 'bg-red-50 text-red-700 border-red-200'
@@ -248,12 +267,11 @@ export default function AdminManagementPage() {
                           {admin.status}
                         </button>
                       </td>
-                      <td className="px-4 py-3 text-muted-foreground text-xs">{admin.lastLogin}</td>
+                      <td className="px-4 py-3 text-muted-foreground text-xs">
+                        {admin.last_login ? new Date(admin.last_login).toLocaleDateString() : 'Never'}
+                      </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex justify-end gap-2">
-                          <button className="flex items-center gap-1.5 px-3 py-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition text-xs font-semibold">
-                            <Pencil className="w-3.5 h-3.5" /> Edit
-                          </button>
                           <button onClick={() => handleDeleteAdmin(admin.id)} className="flex items-center gap-1.5 px-3 py-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition text-xs font-semibold">
                             <Trash2 className="w-3.5 h-3.5" /> Delete
                           </button>
@@ -272,7 +290,7 @@ export default function AdminManagementPage() {
         <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
           <div className="p-4 border-b border-border bg-muted/30 flex justify-between items-center">
             <h3 className="font-semibold">Recent Activities</h3>
-            <span className="text-xs text-muted-foreground bg-background px-2 py-1 rounded border">Last 30 Days</span>
+            <span className="text-xs text-muted-foreground bg-background px-2 py-1 rounded border">Live Data</span>
           </div>
           
           <div className="overflow-x-auto">
@@ -287,14 +305,17 @@ export default function AdminManagementPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border whitespace-nowrap">
-                {logs.map((log) => (
+                {logs.length === 0 ? (
+                  <tr><td colSpan={5} className="text-center p-6 text-muted-foreground">No logs found</td></tr>
+                ) : logs.map((log) => (
                   <tr key={log.id} className="hover:bg-muted/30 transition">
-                    <td className="px-4 py-3 font-medium text-blue-600">
-                      {log.adminName}
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-blue-600">{log.admin_name || 'Unknown'}</div>
+                      <div className="text-xs text-muted-foreground">{log.role || 'Admin'}</div>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground text-xs">
                       <div className="flex items-center gap-1.5">
-                        <Clock className="w-3 h-3" /> {log.date}
+                        <Clock className="w-3 h-3" /> {log.created_at}
                       </div>
                     </td>
                     <td className="px-4 py-3">
@@ -302,7 +323,7 @@ export default function AdminManagementPage() {
                     </td>
                     <td className="px-4 py-3">
                       <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded text-foreground">
-                        {log.targetUser}
+                        {log.target}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground italic">

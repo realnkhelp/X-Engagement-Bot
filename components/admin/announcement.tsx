@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-import { Megaphone, Pencil, Trash2, Plus, Save, Calendar, Bell } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Megaphone, Pencil, Trash2, Plus, Save, Calendar, Bell, RefreshCw } from 'lucide-react';
 
 type AnnouncementType = 'Feature' | 'Update' | 'Important' | 'Reward';
 
 interface Announcement {
-  id: string;
+  id: number;
   title: string;
   description: string;
   type: AnnouncementType;
@@ -14,29 +14,8 @@ interface Announcement {
 }
 
 export default function AdminAnnouncement() {
-  const [announcements, setAnnouncements] = useState<Announcement[]>([
-    {
-      id: '1',
-      title: 'New Dashboard Design',
-      description: 'We have updated the user dashboard with a fresh look.',
-      type: 'Feature',
-      date: '11/24/2025',
-    },
-    {
-      id: '2',
-      title: 'Server Maintenance',
-      description: 'Scheduled maintenance on Sunday night from 2 AM to 4 AM.',
-      type: 'Important',
-      date: '11/22/2025',
-    },
-    {
-      id: '3',
-      title: 'Referral Bonus',
-      description: 'Invite friends and earn double rewards this weekend!',
-      type: 'Reward',
-      date: '11/20/2025',
-    },
-  ]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -45,7 +24,33 @@ export default function AdminAnnouncement() {
   });
 
   const [isEditing, setIsEditing] = useState(false);
-  const [editId, setEditId] = useState<string | null>(null);
+  const [editId, setEditId] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetchAnnouncements();
+  }, []);
+
+  const fetchAnnouncements = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/announcements');
+      const data = await res.json();
+      if (data.success) {
+        const formatted = data.announcements.map((item: any) => ({
+          id: item.id,
+          title: item.title,
+          description: item.message,
+          type: item.category,
+          date: new Date(item.created_at).toLocaleDateString(),
+        }));
+        setAnnouncements(formatted);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -54,7 +59,7 @@ export default function AdminAnnouncement() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.title || !formData.description) {
@@ -62,30 +67,26 @@ export default function AdminAnnouncement() {
       return;
     }
 
-    const currentDate = new Date().toLocaleDateString('en-US');
-
-    if (isEditing && editId) {
-      setAnnouncements(
-        announcements.map((item) =>
-          item.id === editId
-            ? { ...item, ...formData }
-            : item
-        )
-      );
-      setIsEditing(false);
-      setEditId(null);
-    } else {
-      const newAnnouncement: Announcement = {
-        id: Date.now().toString(),
-        title: formData.title,
-        description: formData.description,
-        type: formData.type,
-        date: currentDate,
-      };
-      setAnnouncements([newAnnouncement, ...announcements]);
+    try {
+      if (isEditing && editId) {
+        await fetch('/api/admin/announcements', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: editId, ...formData }),
+        });
+      } else {
+        await fetch('/api/admin/announcements', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        });
+      }
+      
+      fetchAnnouncements();
+      handleCancelEdit();
+    } catch (error) {
+      alert('Failed to save announcement');
     }
-
-    setFormData({ title: '', description: '', type: 'Feature' });
   };
 
   const handleEdit = (item: Announcement) => {
@@ -98,9 +99,18 @@ export default function AdminAnnouncement() {
     setEditId(item.id);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: number) => {
     if (confirm('Are you sure you want to delete this announcement?')) {
-      setAnnouncements(announcements.filter((item) => item.id !== id));
+      try {
+        await fetch('/api/admin/announcements', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id }),
+        });
+        fetchAnnouncements();
+      } catch (error) {
+        alert('Failed to delete');
+      }
     }
   };
 
@@ -120,12 +130,19 @@ export default function AdminAnnouncement() {
     }
   };
 
+  if (loading) return <div className="p-10 text-center text-muted-foreground">Loading Announcements...</div>;
+
   return (
     <div className="p-4 space-y-8 pb-24">
-      <h1 className="text-2xl font-bold flex items-center gap-2">
-        <Megaphone className="w-6 h-6 text-blue-600" />
-        Manage Announcements
-      </h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold flex items-center gap-2">
+          <Megaphone className="w-6 h-6 text-blue-600" />
+          Manage Announcements
+        </h1>
+        <button onClick={fetchAnnouncements} className="p-2 hover:bg-muted rounded-full">
+          <RefreshCw className="w-5 h-5 text-muted-foreground" />
+        </button>
+      </div>
 
       <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
@@ -185,7 +202,7 @@ export default function AdminAnnouncement() {
           <div className="flex justify-end gap-3 pt-2">
             {isEditing && (
               <button
-                              type="button"
+                type="button"
                 onClick={handleCancelEdit}
                 className="px-4 py-2 text-sm font-medium border border-border rounded-lg hover:bg-muted transition"
               >
@@ -220,7 +237,9 @@ export default function AdminAnnouncement() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {announcements.map((item) => (
+              {announcements.length === 0 ? (
+                <tr><td colSpan={4} className="text-center p-8 text-muted-foreground">No announcements found.</td></tr>
+              ) : announcements.map((item) => (
                 <tr key={item.id} className="hover:bg-muted/30 transition">
                   <td className="px-4 py-3">
                     <div className="font-medium text-foreground">{item.title}</div>
@@ -266,12 +285,6 @@ export default function AdminAnnouncement() {
               ))}
             </tbody>
           </table>
-
-          {announcements.length === 0 && (
-            <div className="p-8 text-center text-muted-foreground">
-              No announcements found.
-            </div>
-          )}
         </div>
       </div>
     </div>

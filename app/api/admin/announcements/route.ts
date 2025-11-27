@@ -3,8 +3,8 @@ import { db } from '@/lib/db';
 
 export async function GET() {
   try {
-    const [rows] = await db.query('SELECT * FROM rules ORDER BY id DESC');
-    return NextResponse.json(rows);
+    const [rows] = await db.query('SELECT * FROM announcements ORDER BY created_at DESC');
+    return NextResponse.json({ success: true, announcements: rows });
   } catch (error) {
     return NextResponse.json({ error: 'Server Error' }, { status: 500 });
   }
@@ -12,8 +12,8 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const { title, description, icon } = await req.json();
-    await db.query('INSERT INTO rules (title, description, icon) VALUES (?, ?, ?)', [title, description, icon]);
+    const { title, description, type } = await req.json();
+    await db.query('INSERT INTO announcements (title, message, category) VALUES (?, ?, ?)', [title, description, type]);
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: 'Server Error' }, { status: 500 });
@@ -22,8 +22,8 @@ export async function POST(req: Request) {
 
 export async function PUT(req: Request) {
   try {
-    const { id, title, description, icon } = await req.json();
-    await db.query('UPDATE rules SET title = ?, description = ?, icon = ? WHERE id = ?', [title, description, icon, id]);
+    const { id, title, description, type } = await req.json();
+    await db.query('UPDATE announcements SET title = ?, message = ?, category = ? WHERE id = ?', [title, description, type, id]);
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: 'Server Error' }, { status: 500 });
@@ -33,7 +33,7 @@ export async function PUT(req: Request) {
 export async function DELETE(req: Request) {
   try {
     const { id } = await req.json();
-    await db.query('DELETE FROM rules WHERE id = ?', [id]);
+    await db.query('DELETE FROM announcements WHERE id = ?', [id]);
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: 'Server Error' }, { status: 500 });
