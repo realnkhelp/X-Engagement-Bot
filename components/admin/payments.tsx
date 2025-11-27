@@ -1,21 +1,20 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Edit, Trash2, X, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, X } from 'lucide-react';
 
 interface PaymentMethod {
   id: number;
   name: string;
-  iconUrl: string;
   minimum: string;
   status: 'active' | 'inactive';
 }
 
 export default function AdminPayments() {
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([
-    { id: 1, name: 'BINANCE UID', iconUrl: 'https://cryptologos.cc/logos/binance-coin-bnb-logo.png?v=029', minimum: '10 USDC', status: 'inactive' },
-    { id: 2, name: 'METAMASK', iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/MetaMask_Fox.svg/1200px-MetaMask_Fox.svg.png', minimum: '10 USDC', status: 'active' },
-    { id: 3, name: 'TRUST WALLET', iconUrl: 'https://trustwallet.com/assets/images/media/assets/trust_platform.svg', minimum: '10 USDC', status: 'active' },
+    { id: 1, name: 'BINANCE UID', minimum: '10 USDC', status: 'inactive' },
+    { id: 2, name: 'METAMASK', minimum: '10 USDC', status: 'active' },
+    { id: 3, name: 'TRUST WALLET', minimum: '10 USDC', status: 'active' },
   ]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -24,14 +23,13 @@ export default function AdminPayments() {
   
   const [formData, setFormData] = useState({
     name: '',
-    iconUrl: '',
     minimum: '',
     status: 'active' as 'active' | 'inactive'
   });
 
   const openAddModal = () => {
     setIsEditMode(false);
-    setFormData({ name: '', iconUrl: '', minimum: '', status: 'active' });
+    setFormData({ name: '', minimum: '', status: 'active' });
     setIsModalOpen(true);
   };
 
@@ -40,7 +38,6 @@ export default function AdminPayments() {
     setCurrentId(method.id);
     setFormData({
       name: method.name,
-      iconUrl: method.iconUrl,
       minimum: method.minimum,
       status: method.status
     });
@@ -85,21 +82,21 @@ export default function AdminPayments() {
           <table className="w-full text-sm text-left">
             <thead className="bg-muted text-muted-foreground font-semibold border-b border-border text-xs uppercase">
               <tr>
-                <th className="px-4 py-3">ICON</th>
-                <th className="px-4 py-3">NAME</th>
-                <th className="px-4 py-3">MINIMUM</th>
-                <th className="px-4 py-3">STATUS</th>
-                <th className="px-4 py-3 text-right">ACTIONS</th>
+                <th className="px-4 py-3 whitespace-nowrap">NAME</th>
+                <th className="px-4 py-3 whitespace-nowrap">MINIMUM</th>
+                <th className="px-4 py-3 whitespace-nowrap">STATUS</th>
+                <th className="px-4 py-3 text-right whitespace-nowrap">ACTIONS</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {paymentMethods.map((method) => (
                 <tr key={method.id} className="hover:bg-muted/30 transition">
-                  <td className="px-4 py-3">
-                    <img src={method.iconUrl} alt={method.name} className="w-6 h-6 object-contain" />
+                  <td className="px-4 py-3 font-medium text-foreground">
+                    {method.name}
                   </td>
-                  <td className="px-4 py-3 font-medium text-foreground">{method.name}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{method.minimum}</td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {method.minimum}
+                  </td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${
                       method.status === 'active' 
@@ -131,45 +128,50 @@ export default function AdminPayments() {
               ))}
             </tbody>
           </table>
+          {paymentMethods.length === 0 && (
+             <div className="p-8 text-center text-muted-foreground text-sm">
+               No deposit methods found.
+             </div>
+          )}
         </div>
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-card w-full max-w-md rounded-lg shadow-lg border border-border animate-in fade-in zoom-in duration-200">
-            <div className="p-6 space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-card w-full max-w-md rounded-xl shadow-xl border border-border animate-in fade-in zoom-in duration-200">
+            <div className="p-4 border-b border-border flex justify-between items-center">
               <h3 className="font-bold text-lg">{isEditMode ? 'Edit Method' : 'Add Method'}</h3>
+              <button onClick={() => setIsModalOpen(false)} className="text-muted-foreground hover:text-foreground">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Method Name</label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  className="w-full p-2.5 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="e.g. Binance Pay"
+                />
+              </div>
               
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Name</label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className="w-full p-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Icon URL</label>
-                  <input
-                    type="text"
-                    value={formData.iconUrl}
-                    onChange={(e) => setFormData({...formData, iconUrl: e.target.value})}
-                    className="w-full p-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Minimum Withdraw</label>
-                  <input
-                    type="text"
-                    value={formData.minimum}
-                    onChange={(e) => setFormData({...formData, minimum: e.target.value})}
-                    className="w-full p-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                
-                <div className="flex items-center gap-4 pt-2">
+              <div>
+                <label className="block text-sm font-medium mb-1">Minimum Deposit</label>
+                <input
+                  type="text"
+                  value={formData.minimum}
+                  onChange={(e) => setFormData({...formData, minimum: e.target.value})}
+                  className="w-full p-2.5 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="e.g. 10 USDT"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">Status</label>
+                <div className="flex items-center gap-6">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="radio"
@@ -193,7 +195,7 @@ export default function AdminPayments() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-4">
+              <div className="flex justify-end gap-3 pt-4">
                 <button 
                   onClick={() => setIsModalOpen(false)}
                   className="px-4 py-2 rounded-lg border border-border hover:bg-muted transition text-sm font-medium"
@@ -204,7 +206,7 @@ export default function AdminPayments() {
                   onClick={handleSubmit}
                   className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition text-sm font-medium"
                 >
-                  {isEditMode ? 'Update' : 'Add'}
+                  {isEditMode ? 'Update Method' : 'Add Method'}
                 </button>
               </div>
             </div>

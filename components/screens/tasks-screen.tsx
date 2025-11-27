@@ -1,5 +1,10 @@
-import { useState, useEffect } from 'react';
-import { CheckCircle, Eye, ExternalLink, Clock } from 'lucide-react';
+import { useState } from 'react';
+import { CheckCircle, ExternalLink, Clock } from 'lucide-react';
+
+// User data receive karne ke liye interface banaya
+interface TasksScreenProps {
+  user: any; 
+}
 
 interface Task {
   id: number;
@@ -13,7 +18,8 @@ interface Task {
   link: string;
 }
 
-export default function TasksScreen() {
+// Yahan props me { user } add kiya hai
+export default function TasksScreen({ user }: TasksScreenProps) {
   const [activeTab, setActiveTab] = useState<'user' | 'admin'>('user');
   const [verifyingTasks, setVerifyingTasks] = useState<{ [key: number]: 'idle' | 'waiting' | 'ready' }>({});
   
@@ -58,17 +64,44 @@ export default function TasksScreen() {
     
     setVerifyingTasks(prev => ({ ...prev, [taskId]: 'waiting' }));
 
+    // 8 second ka timer
     setTimeout(() => {
       setVerifyingTasks(prev => ({ ...prev, [taskId]: 'ready' }));
     }, 8000); 
   };
 
-  const handleVerifyTask = (taskId: number) => {
+  const handleVerifyTask = async (taskId: number) => {
+    // 1. Task List se hatana
     setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
     
     const task = tasks.find(t => t.id === taskId);
+    
+    // IMPORTANT: Yahan wo Link hai jo Onboarding me save hua tha
+    const myProfileLink = user?.xProfileLink || ''; 
+
     if (task) {
-      console.log(`Reward added: ${task.reward}`);
+      console.log(`Verifying Task ID: ${taskId}`);
+      console.log(`User completing task: ${user.name}`);
+      console.log(`User's X Profile Link: ${myProfileLink}`);
+
+      // TODO: Yahan aapko Database Call lagana hai (MySQL API ya Firebase)
+      // Example Data jo database me bhejna hai:
+      /*
+        const submissionData = {
+           taskId: task.id,
+           completedByUserId: user.id,
+           completedByUserName: user.name,
+           completedByUserProfileLink: myProfileLink, // YEH HAI WO LINK JO ADMIN KO DIKHEGA
+           timestamp: new Date(),
+           status: 'completed'
+        };
+        
+        // API Call Example:
+        // await fetch('/api/complete-task', { method: 'POST', body: JSON.stringify(submissionData) });
+      */
+
+      // Abhi sirf console me dikha raha hu ki link capture ho gaya hai
+      alert(`Task Verified! Your link sent to owner: ${myProfileLink}`);
     }
   };
 

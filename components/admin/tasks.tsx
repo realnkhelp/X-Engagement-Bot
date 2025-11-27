@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Edit, Trash2, Plus, CheckCircle, XCircle } from 'lucide-react';
+import { Search, Edit, Trash2, Plus, CheckCircle, XCircle, Save, X } from 'lucide-react';
 
 interface Task {
   id: string;
@@ -9,7 +9,9 @@ interface Task {
   reward: number;
   completedMembers: number;
   totalMembers: number;
-  status: boolean; 
+  status: boolean;
+  link?: string;
+  iconUrl?: string;
 }
 
 export default function AdminTasks() {
@@ -21,6 +23,8 @@ export default function AdminTasks() {
       completedMembers: 0,
       totalMembers: 50000,
       status: true,
+      link: 'https://t.me/example',
+      iconUrl: ''
     },
     {
       id: 'T002',
@@ -29,6 +33,8 @@ export default function AdminTasks() {
       completedMembers: 1250,
       totalMembers: 50000,
       status: true,
+      link: 'https://t.me/example2',
+      iconUrl: ''
     },
     {
       id: 'T003',
@@ -37,6 +43,8 @@ export default function AdminTasks() {
       completedMembers: 5000,
       totalMembers: 5000,
       status: false,
+      link: 'https://t.me/example3',
+      iconUrl: ''
     },
   ]);
 
@@ -48,10 +56,72 @@ export default function AdminTasks() {
     iconUrl: ''
   });
 
+  const [isEditing, setIsEditing] = useState(false);
+  const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = () => {
+    if (!formData.title || !formData.reward || !formData.totalMembers) return;
+
+    if (isEditing && currentTaskId) {
+      setTasks(tasks.map(task => 
+        task.id === currentTaskId 
+          ? { 
+              ...task, 
+              title: formData.title,
+              reward: parseFloat(formData.reward),
+              totalMembers: parseInt(formData.totalMembers),
+              link: formData.link,
+              iconUrl: formData.iconUrl
+            } 
+          : task
+      ));
+      setIsEditing(false);
+      setCurrentTaskId(null);
+    } else {
+      const newTask: Task = {
+        id: `T${Math.floor(Math.random() * 10000)}`,
+        title: formData.title,
+        reward: parseFloat(formData.reward),
+        completedMembers: 0,
+        totalMembers: parseInt(formData.totalMembers),
+        status: true,
+        link: formData.link,
+        iconUrl: formData.iconUrl
+      };
+      setTasks([...tasks, newTask]);
+    }
+
+    setFormData({ title: '', reward: '', totalMembers: '', link: '', iconUrl: '' });
+  };
+
+  const handleEditClick = (task: Task) => {
+    setFormData({
+      title: task.title,
+      reward: task.reward.toString(),
+      totalMembers: task.totalMembers.toString(),
+      link: task.link || '',
+      iconUrl: task.iconUrl || ''
+    });
+    setIsEditing(true);
+    setCurrentTaskId(task.id);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setCurrentTaskId(null);
+    setFormData({ title: '', reward: '', totalMembers: '', link: '', iconUrl: '' });
+  };
+
+  const handleDelete = (id: string) => {
+    if (confirm('Are you sure you want to delete this task?')) {
+      setTasks(tasks.filter(t => t.id !== id));
+    }
   };
 
   const toggleStatus = (id: string) => {
@@ -70,8 +140,16 @@ export default function AdminTasks() {
         <h1 className="text-2xl font-bold">Task Management</h1>
       </div>
 
-      <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
-        <h2 className="text-lg font-bold mb-4">Create New Task</h2>
+      <div className={`bg-card border rounded-xl p-6 shadow-sm transition-colors ${isEditing ? 'border-blue-500 ring-1 ring-blue-500' : 'border-border'}`}>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-bold">{isEditing ? 'Edit Task' : 'Create New Task'}</h2>
+          {isEditing && (
+            <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full font-bold">
+              Editing Mode
+            </span>
+          )}
+        </div>
+        
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-1">Task Title</label>
@@ -134,10 +212,22 @@ export default function AdminTasks() {
             />
           </div>
 
-          <div className="flex justify-end pt-2">
-            <button className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition flex items-center gap-2">
-              <Plus className="w-4 h-4" />
-              Add Task
+          <div className="flex justify-end pt-2 gap-3">
+            {isEditing && (
+              <button 
+                onClick={handleCancelEdit}
+                className="px-6 py-2 border border-border rounded-lg font-semibold hover:bg-muted transition flex items-center gap-2"
+              >
+                <X className="w-4 h-4" />
+                Cancel
+              </button>
+            )}
+            <button 
+              onClick={handleSubmit}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition flex items-center gap-2"
+            >
+              {isEditing ? <Save className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+              {isEditing ? 'Update Task' : 'Add Task'}
             </button>
           </div>
         </div>
@@ -162,11 +252,11 @@ export default function AdminTasks() {
           <table className="w-full text-sm text-left">
             <thead className="bg-muted text-muted-foreground font-medium border-b border-border">
               <tr>
-                <th className="px-4 py-3">TITLE</th>
-                <th className="px-4 py-3">REWARD</th>
-                <th className="px-4 py-3">MEMBERS</th>
-                <th className="px-4 py-3">STATUS</th>
-                <th className="px-4 py-3 text-right">ACTIONS</th>
+                <th className="px-4 py-3 min-w-[200px]">TITLE</th>
+                <th className="px-4 py-3 whitespace-nowrap">REWARD</th>
+                <th className="px-4 py-3 whitespace-nowrap">MEMBERS</th>
+                <th className="px-4 py-3 whitespace-nowrap">STATUS</th>
+                <th className="px-4 py-3 text-right whitespace-nowrap">ACTIONS</th>
               </tr>
             </thead>
             <tbody>
@@ -175,13 +265,13 @@ export default function AdminTasks() {
                   <td className="px-4 py-3 font-semibold text-foreground">
                     {task.title}
                   </td>
-                  <td className="px-4 py-3 text-foreground">
+                  <td className="px-4 py-3 text-foreground whitespace-nowrap">
                     {task.reward} USDT
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">
+                  <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
                     {task.completedMembers} / {task.totalMembers}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 whitespace-nowrap">
                     <button 
                       onClick={() => toggleStatus(task.id)}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
@@ -195,13 +285,19 @@ export default function AdminTasks() {
                       />
                     </button>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 whitespace-nowrap">
                     <div className="flex items-center justify-end gap-3">
-                      <button className="flex items-center gap-1 text-blue-500 hover:text-blue-600 transition font-medium text-xs">
+                      <button 
+                        onClick={() => handleEditClick(task)}
+                        className="flex items-center gap-1 text-blue-500 hover:text-blue-600 transition font-medium text-xs"
+                      >
                         <Edit className="w-3 h-3" />
                         Edit
                       </button>
-                      <button className="flex items-center gap-1 text-red-500 hover:text-red-600 transition font-medium text-xs">
+                      <button 
+                        onClick={() => handleDelete(task.id)}
+                        className="flex items-center gap-1 text-red-500 hover:text-red-600 transition font-medium text-xs"
+                      >
                         <Trash2 className="w-3 h-3" />
                         Delete
                       </button>
