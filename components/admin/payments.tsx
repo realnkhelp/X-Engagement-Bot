@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Plus, Edit, Trash2, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, Edit, Trash2, X, RefreshCw } from 'lucide-react';
 
 interface PaymentMethod {
   id: number;
@@ -11,11 +11,8 @@ interface PaymentMethod {
 }
 
 export default function AdminPayments() {
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([
-    { id: 1, name: 'BINANCE UID', minimum: '10 USDC', status: 'inactive' },
-    { id: 2, name: 'METAMASK', minimum: '10 USDC', status: 'active' },
-    { id: 3, name: 'TRUST WALLET', minimum: '10 USDC', status: 'active' },
-  ]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -26,6 +23,25 @@ export default function AdminPayments() {
     minimum: '',
     status: 'active' as 'active' | 'inactive'
   });
+
+  useEffect(() => {
+    fetchMethods();
+  }, []);
+
+  const fetchMethods = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/payments');
+      const data = await res.json();
+      if (data.success) {
+        setPaymentMethods(data.methods);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const openAddModal = () => {
     setIsEditMode(false);
@@ -44,31 +60,59 @@ export default function AdminPayments() {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = () => {
-    if (isEditMode && currentId !== null) {
-      setPaymentMethods(paymentMethods.map(m => 
-        m.id === currentId ? { ...m, ...formData } : m
-      ));
-    } else {
-      const newId = Math.max(...paymentMethods.map(m => m.id), 0) + 1;
-      setPaymentMethods([...paymentMethods, { id: newId, ...formData }]);
+  const handleSubmit = async () => {
+    try {
+      if (isEditMode && currentId !== null) {
+        // Update
+        await fetch('/api/admin/payments', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: currentId, ...formData })
+        });
+      } else {
+        // Create
+        await fetch('/api/admin/payments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData)
+        });
+      }
+      setIsModalOpen(false);
+      fetchMethods();
+    } catch (error) {
+      alert('Operation failed');
     }
-    setIsModalOpen(false);
   };
 
-  const deleteMethod = (id: number) => {
-    setPaymentMethods(paymentMethods.filter(m => m.id !== id));
+  const deleteMethod = async (id: number) => {
+    if (confirm('Are you sure you want to delete this method?')) {
+      try {
+        await fetch('/api/admin/payments', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id })
+        });
+        fetchMethods();
+      } catch (error) {
+        alert('Failed to delete');
+      }
+    }
   };
+
+  if (loading) return <div className="p-10 text-center text-muted-foreground">Loading Methods...</div>;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 pb-24">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Deposit Methods</h1>
+        <button onClick={fetchMethods} className="p-2 hover:bg-muted rounded-full">
+          <RefreshCw className="w-5 h-5 text-muted-foreground" />
+        </button>
       </div>
 
       <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
         <div className="p-4 border-b border-border flex items-center justify-between">
-          <h2 className="font-bold text-lg">Deposit Methods</h2>
+          <h2 className="font-bold text-lg">Active Methods</h2>
           <button 
             onClick={openAddModal}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold text-sm flex items-center gap-2 hover:bg-blue-700 transition"
@@ -89,7 +133,9 @@ export default function AdminPayments() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {paymentMethods.map((method) => (
+              {paymentMethods.length === 0 ? (
+                <tr><td colSpan={4} className="text-center p-8 text-muted-foreground">No methods added yet.</td></tr>
+              ) : paymentMethods.map((method) => (
                 <tr key={method.id} className="hover:bg-muted/30 transition">
                   <td className="px-4 py-3 font-medium text-foreground">
                     {method.name}
@@ -128,11 +174,6 @@ export default function AdminPayments() {
               ))}
             </tbody>
           </table>
-          {paymentMethods.length === 0 && (
-             <div className="p-8 text-center text-muted-foreground text-sm">
-               No deposit methods found.
-             </div>
-          )}
         </div>
       </div>
 
