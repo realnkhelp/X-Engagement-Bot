@@ -16,6 +16,7 @@ export default function OnboardingScreen({ user, rewardAmount, onComplete }: Onb
   const [isJoined, setIsJoined] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
+  const [isClaiming, setIsClaiming] = useState(false);
 
   const handleJoin = () => {
     setIsJoined(true);
@@ -38,15 +39,37 @@ export default function OnboardingScreen({ user, rewardAmount, onComplete }: Onb
     const isValid = cleanLink.startsWith("https://x.com/") || cleanLink.startsWith("https://twitter.com/");
     
     if (isValid && cleanLink.length > 15) {
-      setError(false); // Error hatao
-      setStep(3); // Success step
+      setError(false);
+      setStep(3);
     } else {
-      setError(true); // Error dikhao (Timeout hata diya hai, ab ye nahi hatega)
+      setError(true);
     }
   };
 
-  const handleClaim = () => {
-    onComplete(link);
+  const handleClaim = async () => {
+    if (isClaiming) return;
+    setIsClaiming(true);
+
+    try {
+      const response = await fetch('/api/onboarding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          telegram_id: user?.id,
+          twitter_link: link
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        onComplete(link);
+      } else {
+        setIsClaiming(false);
+      }
+    } catch (error) {
+      console.error(error);
+      setIsClaiming(false);
+    }
   };
 
   return (
@@ -135,7 +158,6 @@ export default function OnboardingScreen({ user, rewardAmount, onComplete }: Onb
             value={link}
             onChange={(e) => {
                 setLink(e.target.value);
-                // Error tab tak rahega jab tak valid na ho jaye, ya user phir submit na kare
             }}
           />
           
@@ -165,8 +187,8 @@ export default function OnboardingScreen({ user, rewardAmount, onComplete }: Onb
           <h1>You've earned <span style={{color: '#FCD34D'}}>{rewardAmount}</span> Points!</h1>
           <p>Your profile is set! Start completing tasks to earn real money.</p>
 
-          <button className="btn-action btn-gradient" onClick={handleClaim}>
-            Let’s Start Earning!
+          <button className="btn-action btn-gradient" onClick={handleClaim} disabled={isClaiming}>
+            {isClaiming ? 'Processing...' : 'Let’s Start Engagement!'}
           </button>
         </div>
       )}
