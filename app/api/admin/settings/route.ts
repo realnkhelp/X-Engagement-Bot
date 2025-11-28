@@ -4,9 +4,9 @@ import { db } from '@/lib/db';
 export async function GET() {
   try {
     const [settingsRows]: any = await db.query('SELECT * FROM settings LIMIT 1');
-    const [assets]: any = await db.query('SELECT * FROM assets');
+    const [assets]: any = await db.query('SELECT id, name, symbol as code, logo as iconUrl FROM assets');
     const [rates]: any = await db.query('SELECT * FROM task_rates');
-    const [banners]: any = await db.query('SELECT * FROM banners');
+    const [banners]: any = await db.query('SELECT id, image_url as imageUrl FROM banners');
     const [support]: any = await db.query('SELECT * FROM support_links');
 
     return NextResponse.json({ 
@@ -28,12 +28,12 @@ export async function POST(req: Request) {
     const { type } = body;
 
     if (type === 'general') {
-      const { bot_name, min_withdraw, onboarding_bonus, upi_id, maintenance_mode, maintenance_message, maintenance_date, telegram_channel, point_currency_name } = body;
+      const { telegramLink, maintenanceMode, maintenanceMessage, maintenanceDate, onboarding_bonus, point_currency_name } = body;
       await db.query(`
         UPDATE settings 
-        SET bot_name = ?, min_withdraw = ?, onboarding_bonus = ?, upi_id = ?, maintenance_mode = ?, maintenance_message = ?, maintenance_date = ?, telegram_channel = ?, point_currency_name = ?
+        SET telegram_channel = ?, maintenance_mode = ?, maintenance_message = ?, maintenance_date = ?, onboarding_bonus = ?, point_currency_name = ?
         WHERE id = 1
-      `, [bot_name, min_withdraw, onboarding_bonus, upi_id, maintenance_mode ? 1 : 0, maintenance_message, maintenance_date, telegram_channel, point_currency_name]);
+      `, [telegramLink, maintenanceMode ? 1 : 0, maintenanceMessage, maintenanceDate, onboarding_bonus, point_currency_name]);
     }
     
     if (type === 'add_currency') {

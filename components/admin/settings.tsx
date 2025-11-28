@@ -15,7 +15,7 @@ export default function AdminSettings() {
     maintenance_mode: false,
     maintenance_message: '',
     maintenance_date: '',
-    telegram_channel: ''
+    telegram_channel: 'https://t.me/ads_tasker'
   });
 
   const [currencies, setCurrencies] = useState<any[]>([]);
@@ -108,6 +108,7 @@ export default function AdminSettings() {
         </button>
       </div>
 
+      {/* Wallet Currencies Section */}
       <div className="bg-card border border-border rounded-xl p-6 space-y-6 shadow-sm">
         <h2 className="text-lg font-bold border-b border-border pb-2 flex items-center gap-2">
           <Wallet className="w-5 h-5 text-blue-500" />
@@ -140,6 +141,7 @@ export default function AdminSettings() {
         </div>
       </div>
 
+      {/* Onboarding Bonus Section (New) */}
       <div className="bg-card border border-border rounded-xl p-6 space-y-6 shadow-sm">
         <h2 className="text-lg font-bold border-b border-border pb-2 flex items-center gap-2 text-purple-600">
           <Gift className="w-5 h-5" />
@@ -177,6 +179,7 @@ export default function AdminSettings() {
         </div>
       </div>
 
+      {/* Task Pricing & Rates Section */}
       <div className="bg-card border border-border rounded-xl p-6 space-y-6 shadow-sm">
         <h2 className="text-lg font-bold border-b border-border pb-2 flex items-center gap-2">
           <Coins className="w-5 h-5 text-yellow-500" />
@@ -214,6 +217,7 @@ export default function AdminSettings() {
         </div>
       </div>
 
+      {/* Slide Banners Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-card border border-border rounded-xl p-6 space-y-4 shadow-sm">
           <h2 className="text-lg font-bold flex items-center gap-2">
@@ -249,6 +253,7 @@ export default function AdminSettings() {
           </div>
         </div>
 
+        {/* Support Links Section */}
         <div className="bg-card border border-border rounded-xl p-6 space-y-4 shadow-sm">
           <h2 className="text-lg font-bold flex items-center gap-2">
             <MessageCircle className="w-5 h-5 text-cyan-500" /> Support Links
@@ -303,6 +308,7 @@ export default function AdminSettings() {
         </div>
       </div>
 
+      {/* Maintenance Mode Section */}
       <div className="bg-card border border-border rounded-xl p-6 space-y-6 shadow-sm">
         <div className="flex items-center justify-between border-b border-border pb-2">
           <h2 className="text-lg font-bold flex items-center gap-2 text-orange-500">
@@ -351,6 +357,7 @@ export default function AdminSettings() {
         )}
       </div>
 
+      {/* Currency Modal */}
       {modalType === 'currency' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
           <div className="bg-card w-full max-w-sm rounded-xl p-6 shadow-xl border border-border">
@@ -368,6 +375,7 @@ export default function AdminSettings() {
         </div>
       )}
 
+      {/* Task Rate Modal */}
       {modalType === 'rate' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
           <div className="bg-card w-full max-w-sm rounded-xl p-6 shadow-xl border border-border">
