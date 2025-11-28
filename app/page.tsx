@@ -1,5 +1,3 @@
-'use client';
-
 import { useState, useEffect } from 'react';
 import { Wallet, Bell, CheckSquare, Plus, Shield, Home, Moon, Sun } from 'lucide-react';
 import HomeScreen from '@/components/screens/home-screen';
@@ -11,6 +9,7 @@ import WalletScreen from '@/components/screens/wallet-screen';
 import RulesScreen from '@/components/screens/rules-screen';
 import BlockedScreen from '@/components/screens/blocked-screen';
 import OnboardingScreen from '@/components/screens/onboarding-screen';
+import MaintenanceScreen from '@/components/screens/maintenance-screen';
 
 type Screen = 'home' | 'tasks' | 'create' | 'report' | 'announcements' | 'wallet' | 'rules';
 
@@ -21,9 +20,26 @@ export default function Page() {
   const [user, setUser] = useState<any>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [rewardAmount, setRewardAmount] = useState(500);
+  const [appSettings, setAppSettings] = useState<any>(null);
 
   useEffect(() => {
     const initApp = async () => {
+      
+      try {
+        const settingsRes = await fetch('/api/admin/settings');
+        const settingsData = await settingsRes.json();
+        if (settingsData.success && settingsData.settings) {
+            setAppSettings(settingsData.settings);
+            
+            if (settingsData.settings.maintenance_mode === 1) {
+                setIsLoading(false);
+                return;
+            }
+        }
+      } catch (error) {
+          console.error("Failed to fetch settings", error);
+      }
+
       let tgUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
 
       if (!tgUser) {
@@ -140,8 +156,18 @@ export default function Page() {
     { id: 'announcements', label: 'Updates', icon: Bell },
   ];
 
-  if (isLoading) {
+  if (isLoading || !appSettings) {
     return <div className="min-h-screen flex items-center justify-center bg-background"><div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>;
+  }
+  
+  if (appSettings.maintenance_mode === 1) {
+    return (
+        <MaintenanceScreen 
+            maintenanceDate={appSettings.maintenance_date} 
+            maintenanceMessage={appSettings.maintenance_message} 
+            isDark={isDark}
+        />
+    );
   }
 
   if (user && user.is_blocked === 1) {
@@ -181,7 +207,7 @@ export default function Page() {
               </div>
               <div className="flex flex-col justify-center">
                 <p className="font-bold text-sm">{user.first_name}</p>
-                <p className="text-xs text-muted-foreground">Points: {Number(user.points).toFixed(2)}</p>
+                <p className="text-xs text-muted-foreground">{appSettings.point_currency_name || 'Points'}: {Number(user.points).toFixed(2)}</p>
               </div>
             </div>
             <button

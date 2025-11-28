@@ -3,8 +3,20 @@ import { db } from '@/lib/db';
 
 export async function GET() {
   try {
-    const [rows]: any = await db.query('SELECT * FROM settings LIMIT 1');
-    return NextResponse.json({ success: true, settings: rows[0] });
+    const [settingsRows]: any = await db.query('SELECT * FROM settings LIMIT 1');
+    const [assets]: any = await db.query('SELECT * FROM assets');
+    const [rates]: any = await db.query('SELECT * FROM task_rates');
+    const [banners]: any = await db.query('SELECT * FROM banners');
+    const [support]: any = await db.query('SELECT * FROM support_links');
+
+    return NextResponse.json({ 
+      success: true, 
+      settings: settingsRows[0],
+      currencies: assets,
+      taskRates: rates,
+      banners: banners,
+      supportLinks: support
+    });
   } catch (error) {
     return NextResponse.json({ error: 'Server Error' }, { status: 500 });
   }
@@ -12,13 +24,45 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const { bot_name, min_withdraw, onboarding_bonus, upi_id, maintenance_mode, maintenance_message } = await req.json();
+    const body = await req.json();
+    const { type } = body;
+
+    if (type === 'general') {
+      const { bot_name, min_withdraw, onboarding_bonus, upi_id, maintenance_mode, maintenance_message, maintenance_date, telegram_channel, point_currency_name } = body;
+      await db.query(`
+        UPDATE settings 
+        SET bot_name = ?, min_withdraw = ?, onboarding_bonus = ?, upi_id = ?, maintenance_mode = ?, maintenance_message = ?, maintenance_date = ?, telegram_channel = ?, point_currency_name = ?
+        WHERE id = 1
+      `, [bot_name, min_withdraw, onboarding_bonus, upi_id, maintenance_mode ? 1 : 0, maintenance_message, maintenance_date, telegram_channel, point_currency_name]);
+    }
     
-    await db.query(`
-      UPDATE settings 
-      SET bot_name = ?, min_withdraw = ?, onboarding_bonus = ?, upi_id = ?, maintenance_mode = ?, maintenance_message = ? 
-      WHERE id = 1
-    `, [bot_name, min_withdraw, onboarding_bonus, upi_id, maintenance_mode ? 1 : 0, maintenance_message]);
+    if (type === 'add_currency') {
+      await db.query('INSERT INTO assets (name, symbol, logo) VALUES (?, ?, ?)', [body.name, body.code, body.iconUrl]);
+    }
+    if (type === 'delete_currency') {
+      await db.query('DELETE FROM assets WHERE id = ?', [body.id]);
+    }
+
+    if (type === 'add_rate') {
+      await db.query('INSERT INTO task_rates (category, name, price, points) VALUES (?, ?, ?, ?)', [body.category, body.name, body.price, body.points]);
+    }
+    if (type === 'delete_rate') {
+      await db.query('DELETE FROM task_rates WHERE id = ?', [body.id]);
+    }
+
+    if (type === 'add_banner') {
+      await db.query('INSERT INTO banners (image_url) VALUES (?)', [body.imageUrl]);
+    }
+    if (type === 'delete_banner') {
+      await db.query('DELETE FROM banners WHERE id = ?', [body.id]);
+    }
+
+    if (type === 'add_support') {
+      await db.query('INSERT INTO support_links (title, url) VALUES (?, ?)', [body.title, body.url]);
+    }
+    if (type === 'delete_support') {
+      await db.query('DELETE FROM support_links WHERE id = ?', [body.id]);
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
