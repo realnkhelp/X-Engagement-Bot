@@ -11,8 +11,7 @@ import WalletScreen from '@/components/screens/wallet-screen';
 import RulesScreen from '@/components/screens/rules-screen';
 import BlockedScreen from '@/components/screens/blocked-screen';
 import MaintenanceScreen from '@/components/screens/maintenance-screen';
-// Note: Make sure this path matches where you saved the file I gave you earlier
-import OnboardingScreen from '@/components/OnboardingScreen'; 
+import OnboardingScreen from '@/components/screens/onboarding-screen';
 
 type Screen = 'home' | 'tasks' | 'create' | 'report' | 'announcements' | 'wallet' | 'rules';
 
@@ -22,47 +21,33 @@ export default function Page() {
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [rewardAmount, setRewardAmount] = useState(500); // Default 500
+  const [rewardAmount, setRewardAmount] = useState(500);
   const [appSettings, setAppSettings] = useState<any>(null);
 
   useEffect(() => {
     const initApp = async () => {
       
-      // 1. Fetch Admin Settings (Bonus & Maintenance)
       try {
         const settingsRes = await fetch('/api/admin/settings');
         const settingsData = await settingsRes.json();
-        
-        if (settingsData.success) {
-            // Save general settings
-            if (settingsData.settings) {
-                setAppSettings(settingsData.settings);
-            }
+        if (settingsData.success && settingsData.settings) {
+            setAppSettings(settingsData.settings);
             
-            // HERE IS THE FIX: Get bonus amount from Admin Settings API
-            if (settingsData.onboarding && settingsData.onboarding.bonusAmount) {
-                setRewardAmount(Number(settingsData.onboarding.bonusAmount));
-            }
-
-            // Check Maintenance Mode
-            if (settingsData.settings && settingsData.settings.maintenanceMode === true) {
-                // If user is not admin (logic can be added), show maintenance
-                // For now, we store settings to check in render
+            if (settingsData.settings.maintenance_mode === 1) {
+                setIsLoading(false);
+                return;
             }
         }
       } catch (error) {
           console.error("Failed to fetch settings", error);
       }
 
-      // 2. Get Telegram User Data
       let tgUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
 
       if (!tgUser) {
-        // Testing fallback
         tgUser = { id: 123456789, first_name: 'Test User', username: 'tester' };
       }
 
-      // 3. Login User
       if (tgUser) {
         try {
           const res = await fetch('/api/login', {
@@ -79,8 +64,8 @@ export default function Page() {
           
           if (data.user) {
             setUser(data.user);
+            setRewardAmount(Number(data.rewardSetting));
 
-            // Check if user is new (no twitter link)
             if (!data.user.twitter_link) {
               setShowOnboarding(true);
             }
@@ -90,7 +75,6 @@ export default function Page() {
         }
       }
 
-      // 4. Set Theme
       const savedTheme = localStorage.getItem('theme');
       if (savedTheme === 'dark') {
         setIsDark(true);
@@ -120,13 +104,29 @@ export default function Page() {
   };
 
   const handleOnboardingComplete = async (profileLink: string) => {
-    // When onboarding finishes, update local user state instantly
-    setUser((prev: any) => ({
-      ...prev,
-      twitter_link: profileLink,
-      points: Number(prev.points) + Number(rewardAmount)
-    }));
-    setShowOnboarding(false);
+    try {
+      const res = await fetch('/api/onboarding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          telegram_id: user.telegram_id,
+          twitter_link: profileLink
+        })
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setUser((prev: any) => ({
+          ...prev,
+          twitter_link: profileLink,
+          points: Number(prev.points) + Number(data.added_points)
+        }));
+        setShowOnboarding(false);
+      }
+    } catch (error) {
+      console.error("Onboarding Error", error);
+    }
   };
 
   const renderScreen = () => {
@@ -158,27 +158,24 @@ export default function Page() {
     { id: 'announcements', label: 'Updates', icon: Bell },
   ];
 
-  if (isLoading) {
+  if (isLoading || !appSettings) {
     return <div className="min-h-screen flex items-center justify-center bg-background"><div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>;
   }
   
-  // Maintenance Mode Check
-  if (appSettings && appSettings.maintenanceMode) {
+  if (appSettings.maintenance_mode === 1) {
     return (
         <MaintenanceScreen 
-            maintenanceDate={appSettings.maintenanceDate} 
-            maintenanceMessage={appSettings.maintenanceMessage} 
+            maintenanceDate={appSettings.maintenance_date} 
+            maintenanceMessage={appSettings.maintenance_message} 
             isDark={isDark}
         />
     );
   }
 
-  // Blocked User Check
   if (user && user.is_blocked === 1) {
     return <BlockedScreen user={user} />;
   }
 
-  // Onboarding Check
   if (showOnboarding && user) {
     return (
       <OnboardingScreen 
@@ -212,7 +209,7 @@ export default function Page() {
               </div>
               <div className="flex flex-col justify-center">
                 <p className="font-bold text-sm">{user.first_name}</p>
-                <p className="text-xs text-muted-foreground">{appSettings?.point_currency_name || 'Points'}: {Number(user.points).toFixed(2)}</p>
+                <p className="text-xs text-muted-foreground">{appSettings.point_currency_name || 'Points'}: {Number(user.points).toFixed(2)}</p>
               </div>
             </div>
             <button
