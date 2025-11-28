@@ -22,29 +22,41 @@ export default function Page() {
   const [user, setUser] = useState<any>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [rewardAmount, setRewardAmount] = useState(500);
-  const [appSettings, setAppSettings] = useState<any>(null);
+  
+  // Default settings taaki loading par na atke
+  const [appSettings, setAppSettings] = useState<any>({
+    point_currency_name: 'Points',
+    maintenance_mode: 0
+  });
 
   useEffect(() => {
     const initApp = async () => {
       
+      // 1. Fetch Global Settings
       try {
         const settingsRes = await fetch('/api/admin/settings');
-        const settingsData = await settingsRes.json();
-        if (settingsData.success && settingsData.settings) {
-            setAppSettings(settingsData.settings);
-            
-            if (settingsData.settings.maintenance_mode === 1) {
-                setIsLoading(false);
-                return;
+        if (settingsRes.ok) {
+            const settingsData = await settingsRes.json();
+            if (settingsData.success && settingsData.settings) {
+                setAppSettings(settingsData.settings);
+                
+                // Check Maintenance Mode
+                if (settingsData.settings.maintenance_mode === 1) {
+                    setIsLoading(false);
+                    return;
+                }
             }
         }
       } catch (error) {
           console.error("Failed to fetch settings", error);
+          // Error aane par bhi app chalna chahiye, isliye hum rukenge nahi
       }
 
+      // 2. Get Telegram User Data
       let tgUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
 
       if (!tgUser) {
+        // Testing user for browser
         tgUser = { id: 123456789, first_name: 'Test User', username: 'tester' };
       }
 
@@ -60,14 +72,19 @@ export default function Page() {
             })
           });
           
-          const data = await res.json();
-          
-          if (data.user) {
-            setUser(data.user);
-            setRewardAmount(Number(data.rewardSetting));
+          if (res.ok) {
+            const data = await res.json();
+            if (data.user) {
+                setUser(data.user);
+                
+                // Update reward amount if available from DB
+                if (data.rewardSetting) {
+                    setRewardAmount(Number(data.rewardSetting));
+                }
 
-            if (!data.user.twitter_link) {
-              setShowOnboarding(true);
+                if (!data.user.twitter_link) {
+                  setShowOnboarding(true);
+                }
             }
           }
         } catch (error) {
@@ -81,6 +98,7 @@ export default function Page() {
         document.documentElement.classList.add('dark');
       }
 
+      // Loading band karo chahe error ho ya success
       setIsLoading(false);
     };
 
@@ -158,11 +176,11 @@ export default function Page() {
     { id: 'announcements', label: 'Updates', icon: Bell },
   ];
 
-  if (isLoading || !appSettings) {
+  if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-background"><div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>;
   }
   
-  if (appSettings.maintenance_mode === 1) {
+  if (appSettings && appSettings.maintenance_mode === 1) {
     return (
         <MaintenanceScreen 
             maintenanceDate={appSettings.maintenance_date} 
@@ -187,7 +205,10 @@ export default function Page() {
   }
 
   if (!user) {
-    return <div className="min-h-screen flex items-center justify-center">Loading User Data...</div>;
+    return <div className="min-h-screen flex items-center justify-center text-center p-4">
+        <p>Connecting to server...</p>
+        <button onClick={() => window.location.reload()} className="mt-4 px-4 py-2 bg-blue-500 text-white rounded">Retry</button>
+    </div>;
   }
 
   return (
@@ -209,7 +230,7 @@ export default function Page() {
               </div>
               <div className="flex flex-col justify-center">
                 <p className="font-bold text-sm">{user.first_name}</p>
-                <p className="text-xs text-muted-foreground">{appSettings.point_currency_name || 'Points'}: {Number(user.points).toFixed(2)}</p>
+                <p className="text-xs text-muted-foreground">{appSettings?.point_currency_name || 'Points'}: {Number(user.points).toFixed(2)}</p>
               </div>
             </div>
             <button
