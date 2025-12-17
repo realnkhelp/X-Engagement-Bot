@@ -1,47 +1,78 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { prisma } from '@/lib/db';
+import redis from '@/lib/redis';
 
 export async function POST(req: Request) {
   try {
     const { userId, taskId } = await req.json();
 
-    const [tasks]: any = await db.query('SELECT * FROM tasks WHERE id = ? AND status = "active"', [taskId]);
-    const task = tasks[0];
-
-    if (!task) {
-      return NextResponse.json({ error: 'Task not found or inactive' }, { status: 404 });
+    if (!userId || !taskId) {
+      return NextResponse.json({ error: 'Missing data' }, { status: 400 });
     }
 
-    if (task.completed_count >= task.quantity) {
-      return NextResponse.json({ error: 'Task limit reached' }, { status: 400 });
-    }
+    const reward = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.findUnique({
+        where: { telegramId: BigInt(userId) }
+      });
 
-    const [existing]: any = await db.query(
-      'SELECT * FROM user_tasks WHERE user_id = ? AND task_id = ?',
-      [userId, taskId]
-    );
+      if (!user) {
+        throw new Error('User not found');
+      }
 
-    if (existing.length > 0) {
-      return NextResponse.json({ error: 'Already completed' }, { status: 400 });
-    }
+      const task = await tx.task.findUnique({
+        where: { id: parseInt(taskId) }
+      });
 
-    await db.query(
-      'INSERT INTO user_tasks (user_id, task_id, status) VALUES (?, ?, "completed")',
-      [userId, taskId]
-    );
+      if (!task || task.status !== 'active') {
+        throw new Error('Task not found or inactive');
+      }
 
-    await db.query(
-      'UPDATE tasks SET completed_count = completed_count + 1 WHERE id = ?',
-      [taskId]
-    );
+      if (task.completedCount !== null && task.completedCount >= task.quantity) {
+        throw new Error('Task limit reached');
+      }
 
-    await db.query(
-      'UPDATE users SET points = points + ? WHERE telegram_id = ?',
-      [task.reward, userId]
-    );
+      const existing = await tx.userTask.findFirst({
+        where: {
+          userId: user.id,
+          taskId: parseInt(taskId)
+        }
+      });
 
-    return NextResponse.json({ success: true, reward: task.reward });
-  } catch (error) {
-    return NextResponse.json({ error: 'Server Error' }, { status: 500 });
+      if (existing) {
+        throw new Error('Already completed');
+      }
+
+      await tx.userTask.create({
+        data: {
+          userId: user.id,
+          taskId: parseInt(taskId),
+          status: 'completed'
+        }
+      });
+
+      await tx.task.update({
+        where: { id: parseInt(taskId) },
+        data: { completedCount: { increment: 1 } }
+      });
+
+      await tx.user.update({
+        where: { id: user.id },
+        data: {
+          points: { increment: task.reward },
+          balance: { increment: task.reward }
+        }
+      });
+
+      return task.reward;
+    });
+
+    await redis.del(`user:profile:${userId}`);
+
+    return NextResponse.json({ success: true, reward: reward.toString() });
+
+  } catch (error: any) {
+    const errorMessage = error.message || 'Server Error';
+    const status = errorMessage === 'Server Error' ? 500 : 400;
+    return NextResponse.json({ error: errorMessage }, { status });
   }
 }

@@ -1,18 +1,32 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { prisma } from '@/lib/db';
 
 export async function POST(req: Request) {
   try {
-    const { userId, amount, method, txid } = await req.json();
+    const { telegramId, amount, method, txid } = await req.json();
 
-    if (!userId || !amount || !method || !txid) {
+    if (!telegramId || !amount || !method || !txid) {
       return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
     }
 
-    await db.query(
-      'INSERT INTO transactions (user_id, amount, type, status, method, txid) VALUES (?, ?, "Deposit", "Pending", ?, ?)',
-      [userId, amount, method, txid]
-    );
+    const user = await prisma.user.findUnique({
+      where: { telegramId: BigInt(telegramId) }
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    await prisma.transaction.create({
+      data: {
+        userId: user.id,
+        amount: amount,
+        type: 'Deposit',
+        status: 'Pending',
+        method: method,
+        txid: txid
+      }
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

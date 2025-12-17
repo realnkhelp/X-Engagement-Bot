@@ -9,9 +9,9 @@ interface CreateTaskScreenProps {
 
 interface CategoryOption {
   id: string;
-  label: string;
-  price_usd: number;
-  price_points: number;
+  name: string; // Changed from label to name to match DB
+  priceUsd: number; // camelCase
+  pricePoints: number; // camelCase
 }
 
 export default function CreateTaskScreen({ user }: CreateTaskScreenProps) {
@@ -36,18 +36,24 @@ export default function CreateTaskScreen({ user }: CreateTaskScreenProps) {
   const tonPriceInUsd = 5.20; 
 
   useEffect(() => {
-    fetch('/api/categories')
+    // Categories fetch logic
+    fetch('/api/tasks/categories')
       .then(res => res.json())
       .then(data => {
-        setCategories(data);
-        if (data.length > 0) setFormData(prev => ({ ...prev, category: data[0].id }));
-      });
+        if (data.success) {
+          setCategories(data.categories);
+          if (data.categories.length > 0) {
+            setFormData(prev => ({ ...prev, category: data.categories[0].id }));
+          }
+        }
+      })
+      .catch(err => console.error(err));
   }, []);
 
   useEffect(() => {
-    if (activeTab === 'my' && user?.telegram_id) {
+    if (activeTab === 'my' && user?.telegramId) {
       setLoadingTasks(true);
-      fetch(`/api/tasks/my?userId=${user.telegram_id}`)
+      fetch(`/api/tasks/my?userId=${user.telegramId}`)
         .then(res => res.json())
         .then(data => {
           if (data.success) setMyTasks(data.tasks);
@@ -57,19 +63,20 @@ export default function CreateTaskScreen({ user }: CreateTaskScreenProps) {
   }, [activeTab, user]);
 
   const getSelectedCategoryData = () => {
-    return categories.find(c => c.id === formData.category) || categories[0];
+    // Assuming category ID comes as string from select but might be number in DB logic
+    return categories.find(c => String(c.id) === String(formData.category)) || categories[0];
   };
 
   const calculateTotalUsd = () => {
     const data = getSelectedCategoryData();
     if (!data) return "0.00";
-    return (data.price_usd * formData.quantity).toFixed(4);
+    return (Number(data.priceUsd) * formData.quantity).toFixed(4);
   };
 
   const calculateTotalPoints = () => {
     const data = getSelectedCategoryData();
     if (!data) return 0;
-    return data.price_points * formData.quantity;
+    return Number(data.pricePoints) * formData.quantity;
   };
 
   const getTonAmount = () => {
@@ -88,11 +95,12 @@ export default function CreateTaskScreen({ user }: CreateTaskScreenProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: user.telegram_id,
-          category_id: formData.category,
+          userId: user.telegramId,
+          categoryId: formData.category,
           link: formData.link,
           quantity: formData.quantity,
-          total_points: calculateTotalPoints()
+          totalPoints: calculateTotalPoints(),
+          paymentMethod: 'Points'
         })
       });
       
@@ -106,6 +114,7 @@ export default function CreateTaskScreen({ user }: CreateTaskScreenProps) {
       }
     } catch (error) {
       console.error(error);
+      alert('Network Error');
     }
   };
 
@@ -159,7 +168,9 @@ export default function CreateTaskScreen({ user }: CreateTaskScreenProps) {
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="w-full px-4 py-3.5 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-between"
               >
-                <span className="font-medium">{categories.find(c => c.id === formData.category)?.label || 'Loading...'}</span>
+                <span className="font-medium">
+                  {categories.find(c => String(c.id) === String(formData.category))?.name || 'Select Category'}
+                </span>
                 <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
 
@@ -171,13 +182,13 @@ export default function CreateTaskScreen({ user }: CreateTaskScreenProps) {
                       type="button"
                       onClick={() => handleCategorySelect(cat.id)}
                       className={`w-full px-4 py-3 rounded-lg flex items-center justify-between transition-all mb-1 last:mb-0 ${
-                        formData.category === cat.id
+                        String(formData.category) === String(cat.id)
                           ? 'bg-blue-600 text-white shadow-md'
                           : 'hover:bg-muted text-foreground'
                       }`}
                     >
-                      <span className="font-semibold">{cat.label}</span>
-                      {formData.category === cat.id && (
+                      <span className="font-semibold">{cat.name}</span>
+                      {String(formData.category) === String(cat.id) && (
                         <div className="bg-white/20 p-1 rounded-full">
                           <Check className="w-4 h-4 text-white" />
                         </div>
@@ -264,7 +275,7 @@ export default function CreateTaskScreen({ user }: CreateTaskScreenProps) {
             <div className="text-center py-10 text-muted-foreground">No tasks created yet.</div>
           ) : (
             myTasks.map((task) => {
-              const isFinished = task.completed_count >= task.quantity;
+              const isFinished = task.completedCount >= task.quantity;
               
               return (
                 <div key={task.id} className="bg-card border border-border rounded-xl p-4 shadow-sm space-y-4">
@@ -279,18 +290,18 @@ export default function CreateTaskScreen({ user }: CreateTaskScreenProps) {
                          />
                       </div>
                       <div>
-                        <h3 className="font-bold text-lg leading-tight">{task.first_name || user?.first_name}</h3>
+                        <h3 className="font-bold text-lg leading-tight">{task.firstName || user?.firstName}</h3>
                         
                         {isFinished ? (
                            <span className="text-green-600 font-bold text-sm">Completed</span>
                         ) : (
                            <span className="text-blue-600 font-bold text-sm">
-                             {task.completed_count}/{task.quantity} Progress
+                             {task.completedCount}/{task.quantity} Progress
                            </span>
                         )}
                         
                         <p className="text-sm text-muted-foreground mt-1 font-medium">
-                          TASK ID: #{task.id} {task.category_id}
+                          TASK ID: #{task.id} {task.categoryId}
                         </p>
                       </div>
                     </div>
@@ -324,12 +335,12 @@ export default function CreateTaskScreen({ user }: CreateTaskScreenProps) {
                                 className="w-9 h-9 rounded-full object-cover"
                               />
                               <div>
-                                <p className="font-semibold text-sm">{completer.name}</p>
+                                <p className="font-semibold text-sm">{completer.firstName || completer.name}</p>
                                 <p className="text-xs text-muted-foreground">{completer.username}</p>
                               </div>
                             </div>
                             <button 
-                              onClick={() => openCompleterLink(completer.twitter_link)}
+                              onClick={() => openCompleterLink(completer.twitterLink)}
                               className="px-4 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-md hover:bg-blue-700 transition"
                             >
                               View

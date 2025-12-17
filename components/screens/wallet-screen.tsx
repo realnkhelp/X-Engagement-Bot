@@ -29,7 +29,8 @@ export default function WalletScreen({ user }: WalletScreenProps) {
   const [showErrorAlert, setShowErrorAlert] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user?.telegram_id) {
+    // Updated: telegram_id -> telegramId (Prisma format)
+    if (user?.telegramId) {
       fetchWalletData();
     }
     fetchLivePrices();
@@ -39,7 +40,7 @@ export default function WalletScreen({ user }: WalletScreenProps) {
 
   const fetchWalletData = async () => {
     try {
-      const res = await fetch(`/api/wallet?userId=${user.telegram_id}`);
+      const res = await fetch(`/api/wallet?userId=${user.telegramId}`);
       const data = await res.json();
       if (data.success) {
         setAssets(data.assets);
@@ -101,7 +102,7 @@ export default function WalletScreen({ user }: WalletScreenProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: user.telegram_id,
+          telegramId: user.telegramId, // Changed to match backend
           amount: amount,
           method: selectedMethod.symbol,
           txid: depositTxid
@@ -115,9 +116,11 @@ export default function WalletScreen({ user }: WalletScreenProps) {
         setSelectedMethod(null);
         setDepositAmount('');
         setDepositTxid('');
+      } else {
+        alert('Failed to submit deposit');
       }
     } catch (error) {
-      alert('Failed to submit deposit');
+      alert('Network Error');
     }
   };
 
@@ -236,7 +239,10 @@ export default function WalletScreen({ user }: WalletScreenProps) {
                   </div>
                   <div>
                     <p className="font-semibold text-sm">{item.method} Deposit</p>
-                    <p className="text-xs text-muted-foreground">{new Date(item.created_at).toLocaleDateString()}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {/* Updated date format handling for Prisma ISO strings */}
+                      {new Date(item.createdAt).toLocaleDateString()}
+                    </p>
                   </div>
                 </div>
                 <div className="text-right">
@@ -271,7 +277,10 @@ export default function WalletScreen({ user }: WalletScreenProps) {
                 </div>
                 <div>
                   <p className="font-semibold text-sm">{item.type}</p>
-                  <p className="text-xs text-muted-foreground">{new Date(item.created_at).toLocaleDateString()}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {/* Updated date format handling for Prisma ISO strings */}
+                    {new Date(item.createdAt).toLocaleDateString()}
+                  </p>
                 </div>
               </div>
               <div className="text-right">
