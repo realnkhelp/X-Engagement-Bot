@@ -23,68 +23,58 @@ export default function Page() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [rewardAmount, setRewardAmount] = useState(500);
   
-  // Default settings taaki loading par na atke
   const [appSettings, setAppSettings] = useState<any>({
-    point_currency_name: 'Points',
-    maintenance_mode: 0
+    pointCurrencyName: 'Points',
+    maintenanceMode: false,
+    maintenanceMessage: 'System under maintenance.',
+    maintenanceDate: ''
   });
 
   useEffect(() => {
     const initApp = async () => {
       
-      // 1. Fetch Global Settings
+      // 1. Get Global Settings
       try {
-        const settingsRes = await fetch('/api/admin/settings');
-        if (settingsRes.ok) {
-            const settingsData = await settingsRes.json();
-            if (settingsData.success && settingsData.settings) {
-                setAppSettings(settingsData.settings);
-                
-                // Check Maintenance Mode
-                if (settingsData.settings.maintenance_mode === 1) {
-                    setIsLoading(false);
-                    return;
-                }
-            }
-        }
+        // हम बाद में settings API बनाएंगे, अभी default रहने देते हैं
+        // const settingsRes = await fetch('/api/settings');
+        // if (settingsRes.ok) { ... }
       } catch (error) {
-          console.error("Failed to fetch settings", error);
-          // Error aane par bhi app chalna chahiye, isliye hum rukenge nahi
+        console.error("Settings fetch error", error);
       }
 
       // 2. Get Telegram User Data
       let tgUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
 
-      if (!tgUser) {
-        // Testing user for browser
-        tgUser = { id: 123456789, first_name: 'Test User', username: 'tester' };
+      // Testing Mode (Localhost)
+      if (!tgUser && process.env.NODE_ENV === 'development') {
+        tgUser = { id: 123456789, first_name: 'Test User', username: 'tester', photo_url: null };
       }
 
       if (tgUser) {
         try {
-          const res = await fetch('/api/login', {
+          // जो API हमने पिछले स्टेप में बनाई थी उसे कॉल कर रहे हैं
+          const res = await fetch('/api/user', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              id: tgUser.id,
-              first_name: tgUser.first_name,
-              username: tgUser.username
+              telegramId: tgUser.id,
+              firstName: tgUser.first_name,
+              lastName: tgUser.last_name,
+              username: tgUser.username,
+              avatar: tgUser.photo_url,
+              startParam: (window as any).Telegram?.WebApp?.initDataUnsafe?.start_param
             })
           });
           
           if (res.ok) {
             const data = await res.json();
             if (data.user) {
-                setUser(data.user);
-                
-                // Update reward amount if available from DB
-                if (data.rewardSetting) {
-                    setRewardAmount(Number(data.rewardSetting));
-                }
-
-                if (!data.user.twitter_link) {
-                  setShowOnboarding(true);
-                }
+              setUser(data.user);
+              
+              // Onboarding Check (Prisma uses camelCase: twitterLink)
+              if (!data.user.twitterLink) {
+                setShowOnboarding(true);
+              }
             }
           }
         } catch (error) {
@@ -98,7 +88,6 @@ export default function Page() {
         document.documentElement.classList.add('dark');
       }
 
-      // Loading band karo chahe error ho ya success
       setIsLoading(false);
     };
 
@@ -123,12 +112,13 @@ export default function Page() {
 
   const handleOnboardingComplete = async (profileLink: string) => {
     try {
-      const res = await fetch('/api/onboarding', {
+      // यह API हम आगे बनाएंगे
+      const res = await fetch('/api/user/onboarding', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          telegram_id: user.telegram_id,
-          twitter_link: profileLink
+          telegramId: user.telegramId,
+          twitterLink: profileLink
         })
       });
 
@@ -137,8 +127,8 @@ export default function Page() {
       if (data.success) {
         setUser((prev: any) => ({
           ...prev,
-          twitter_link: profileLink,
-          points: Number(prev.points) + Number(data.added_points)
+          twitterLink: profileLink,
+          points: Number(prev.points) + Number(data.addedPoints || 0)
         }));
         setShowOnboarding(false);
       }
@@ -148,6 +138,7 @@ export default function Page() {
   };
 
   const renderScreen = () => {
+    // Props pass karte waqt user data bheja ja raha hai
     switch (activeScreen) {
       case 'home':
         return <HomeScreen user={user} isDark={isDark} onNavigate={setActiveScreen} />;
@@ -180,17 +171,18 @@ export default function Page() {
     return <div className="min-h-screen flex items-center justify-center bg-background"><div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>;
   }
   
-  if (appSettings && appSettings.maintenance_mode === 1) {
+  if (appSettings && appSettings.maintenanceMode) {
     return (
         <MaintenanceScreen 
-            maintenanceDate={appSettings.maintenance_date} 
-            maintenanceMessage={appSettings.maintenance_message} 
+            maintenanceDate={appSettings.maintenanceDate} 
+            maintenanceMessage={appSettings.maintenanceMessage} 
             isDark={isDark}
         />
     );
   }
 
-  if (user && user.is_blocked === 1) {
+  // Prisma uses boolean 'isBlocked'
+  if (user && user.isBlocked) {
     return <BlockedScreen user={user} />;
   }
 
@@ -221,16 +213,16 @@ export default function Page() {
                 {user.avatar ? (
                   <img
                     src={user.avatar}
-                    alt={user.first_name}
+                    alt={user.firstName}
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <span>{getInitials(user.first_name)}</span>
+                  <span>{getInitials(user.firstName || 'User')}</span>
                 )}
               </div>
               <div className="flex flex-col justify-center">
-                <p className="font-bold text-sm">{user.first_name}</p>
-                <p className="text-xs text-muted-foreground">{appSettings?.point_currency_name || 'Points'}: {Number(user.points).toFixed(2)}</p>
+                <p className="font-bold text-sm">{user.firstName}</p>
+                <p className="text-xs text-muted-foreground">{appSettings?.pointCurrencyName || 'Points'}: {Number(user.points).toFixed(2)}</p>
               </div>
             </div>
             <button

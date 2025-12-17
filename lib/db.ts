@@ -1,19 +1,9 @@
-import mysql from 'mysql2/promise';
+import { PrismaClient } from '@prisma/client'
 
-// SSL Certificate handling for TiDB Cloud
-const dbConfig = {
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  port: parseInt(process.env.DB_PORT || '4000'),
-  ssl: {
-    minVersion: 'TLSv1.2',
-    rejectUnauthorized: false // Cloud databases ke liye often false rakhna padta hai
-  },
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
-};
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined
+}
 
-export const db = mysql.createPool(dbConfig);
+export const prisma = globalForPrisma.prisma ?? new PrismaClient()
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
