@@ -1,19 +1,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Edit, Lock, Unlock, X, Save, Wallet, Coins, User as UserIcon } from 'lucide-react';
+import { Search, Edit, Lock, Unlock, X, Save, Wallet, Coins } from 'lucide-react';
 
 interface User {
   id: number;
-  telegram_id: number;
-  first_name: string;
+  telegramId: string;
+  firstName: string;
   username: string;
   avatar: string;
   balance: number;
   points: number;
-  twitter_link: string;
-  is_blocked: number;
-  created_at: string;
+  twitterLink: string;
+  isBlocked: boolean;
+  createdAt: string;
 }
 
 export default function AdminUsers() {
@@ -27,7 +27,7 @@ export default function AdminUsers() {
   const [editForm, setEditForm] = useState({
     balance: '',
     points: '',
-    twitter_link: '',
+    twitterLink: '',
     isBlocked: false
   });
 
@@ -54,8 +54,8 @@ export default function AdminUsers() {
     setEditForm({
       balance: user.balance.toString(),
       points: user.points ? user.points.toString() : '0',
-      twitter_link: user.twitter_link || '',
-      isBlocked: user.is_blocked === 1
+      twitterLink: user.twitterLink || '',
+      isBlocked: user.isBlocked
     });
     setIsEditModalOpen(true);
   };
@@ -68,10 +68,10 @@ export default function AdminUsers() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: currentUser.telegram_id,
+          telegramId: currentUser.telegramId,
           balance: parseFloat(editForm.balance),
           points: parseFloat(editForm.points),
-          twitter_link: editForm.twitter_link,
+          twitterLink: editForm.twitterLink,
           isBlocked: editForm.isBlocked
         })
       });
@@ -89,17 +89,17 @@ export default function AdminUsers() {
   };
 
   const toggleUserStatus = async (user: User) => {
-    if (confirm(`Are you sure you want to ${user.is_blocked ? 'unblock' : 'block'} this user?`)) {
+    if (confirm(`Are you sure you want to ${user.isBlocked ? 'unblock' : 'block'} this user?`)) {
       try {
         const res = await fetch('/api/admin/users/update', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            userId: user.telegram_id,
+            telegramId: user.telegramId,
             balance: user.balance,
             points: user.points,
-            twitter_link: user.twitter_link,
-            isBlocked: !user.is_blocked
+            twitterLink: user.twitterLink,
+            isBlocked: !user.isBlocked
           })
         });
         if (res.ok) fetchUsers();
@@ -110,9 +110,9 @@ export default function AdminUsers() {
   };
 
   const filteredUsers = users.filter(user => 
-    (user.first_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
+    (user.firstName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
     (user.username?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-    user.telegram_id.toString().includes(searchTerm)
+    String(user.telegramId).includes(searchTerm)
   );
 
   if (loading) return <div className="p-10 text-center text-muted-foreground">Loading Users...</div>;
@@ -154,7 +154,7 @@ export default function AdminUsers() {
               {filteredUsers.map((user) => (
                 <tr key={user.id} className="hover:bg-muted/30 transition">
                   <td className="px-4 py-3 font-mono text-xs text-muted-foreground whitespace-nowrap">
-                    {user.telegram_id}
+                    {user.telegramId.toString()}
                   </td>
 
                   <td className="px-4 py-3">
@@ -168,7 +168,7 @@ export default function AdminUsers() {
                       </div>
                       <div className="flex flex-col min-w-0">
                         <span className="font-semibold text-foreground truncate max-w-[120px]">
-                          {user.first_name}
+                          {user.firstName}
                         </span>
                         <span className="text-xs text-muted-foreground truncate max-w-[120px]">
                           @{user.username || 'no_username'}
@@ -187,11 +187,11 @@ export default function AdminUsers() {
 
                   <td className="px-4 py-3 whitespace-nowrap">
                     <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${
-                      user.is_blocked === 0 
+                      !user.isBlocked 
                         ? 'bg-green-100 text-green-600' 
                         : 'bg-red-100 text-red-600'
                     }`}>
-                      {user.is_blocked === 0 ? 'Active' : 'Blocked'}
+                      {!user.isBlocked ? 'Active' : 'Blocked'}
                     </span>
                   </td>
 
@@ -208,13 +208,13 @@ export default function AdminUsers() {
                       <button 
                         onClick={() => toggleUserStatus(user)}
                         className={`flex items-center gap-1 px-2 py-1.5 rounded-md transition text-xs font-medium ${
-                          user.is_blocked === 0
+                          !user.isBlocked
                             ? 'bg-red-50 text-red-600 hover:bg-red-100'
                             : 'bg-green-50 text-green-600 hover:bg-green-100'
                         }`}
                       >
-                        {user.is_blocked === 0 ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
-                        {user.is_blocked === 0 ? 'Block' : 'Unblock'}
+                        {!user.isBlocked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
+                        {!user.isBlocked ? 'Block' : 'Unblock'}
                       </button>
                     </div>
                   </td>
@@ -236,7 +236,7 @@ export default function AdminUsers() {
                 />
                 <div>
                   <h3 className="font-bold text-base">Edit User</h3>
-                  <p className="text-xs text-muted-foreground">ID: {currentUser.telegram_id}</p>
+                  <p className="text-xs text-muted-foreground">ID: {currentUser.telegramId.toString()}</p>
                 </div>
               </div>
               <button onClick={() => setIsEditModalOpen(false)} className="text-muted-foreground hover:text-foreground p-1 rounded-full hover:bg-muted transition">
@@ -288,8 +288,8 @@ export default function AdminUsers() {
                   <p className="text-xs text-muted-foreground">X (Twitter) Profile Link</p>
                   <input
                     type="text"
-                    value={editForm.twitter_link}
-                    onChange={(e) => setEditForm({...editForm, twitter_link: e.target.value})}
+                    value={editForm.twitterLink}
+                    onChange={(e) => setEditForm({...editForm, twitterLink: e.target.value})}
                     className="w-full p-2.5 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                     placeholder="https://x.com/username"
                   />

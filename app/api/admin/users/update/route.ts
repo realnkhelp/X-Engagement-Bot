@@ -1,14 +1,23 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { prisma } from '@/lib/db';
 
 export async function POST(req: Request) {
   try {
-    const { userId, balance, points, twitter_link, isBlocked } = await req.json();
+    const { telegramId, balance, points, twitterLink, isBlocked } = await req.json();
 
-    await db.query(
-      'UPDATE users SET balance = ?, points = ?, twitter_link = ?, is_blocked = ? WHERE telegram_id = ?',
-      [balance, points, twitter_link, isBlocked ? 1 : 0, userId]
-    );
+    if (!telegramId) {
+      return NextResponse.json({ error: 'User ID Missing' }, { status: 400 });
+    }
+
+    await prisma.user.update({
+      where: { telegramId: BigInt(telegramId) },
+      data: {
+        balance: parseFloat(balance),
+        points: parseFloat(points),
+        twitterLink: twitterLink,
+        isBlocked: isBlocked
+      }
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {
