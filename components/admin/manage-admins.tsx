@@ -12,17 +12,17 @@ interface Admin {
   username: string;
   role: Role;
   status: Status;
-  last_login: string;
+  lastLogin: string;
 }
 
 interface Log {
   id: number;
-  admin_name: string;
+  adminName: string;
   role: string;
   action: string;
   target: string;
   details: string;
-  created_at: string;
+  createdAt: string;
 }
 
 export default function AdminManagementPage() {
@@ -65,8 +65,13 @@ export default function AdminManagementPage() {
       const data = await res.json();
       if (data.success) {
         const formattedLogs = data.logs.map((log: any) => ({
-          ...log,
-          created_at: new Date(log.created_at).toLocaleString()
+          id: log.id,
+          adminName: log.admin?.username || 'System',
+          role: log.admin?.role || 'System',
+          action: log.action,
+          target: log.target,
+          details: log.details,
+          createdAt: new Date(log.createdAt).toLocaleString()
         }));
         setLogs(formattedLogs);
       }
@@ -268,7 +273,7 @@ export default function AdminManagementPage() {
                         </button>
                       </td>
                       <td className="px-4 py-3 text-muted-foreground text-xs">
-                        {admin.last_login ? new Date(admin.last_login).toLocaleDateString() : 'Never'}
+                        {admin.lastLogin ? new Date(admin.lastLogin).toLocaleDateString() : 'Never'}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex justify-end gap-2">
@@ -310,12 +315,12 @@ export default function AdminManagementPage() {
                 ) : logs.map((log) => (
                   <tr key={log.id} className="hover:bg-muted/30 transition">
                     <td className="px-4 py-3">
-                      <div className="font-medium text-blue-600">{log.admin_name || 'Unknown'}</div>
-                      <div className="text-xs text-muted-foreground">{log.role || 'Admin'}</div>
+                      <div className="font-medium text-blue-600">{log.adminName}</div>
+                      <div className="text-xs text-muted-foreground">{log.role}</div>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground text-xs">
                       <div className="flex items-center gap-1.5">
-                        <Clock className="w-3 h-3" /> {log.created_at}
+                        <Clock className="w-3 h-3" /> {log.createdAt}
                       </div>
                     </td>
                     <td className="px-4 py-3">
