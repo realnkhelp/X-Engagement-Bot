@@ -35,9 +35,13 @@ export default function Page() {
       
       // 1. Get Global Settings
       try {
-        // हम बाद में settings API बनाएंगे, अभी default रहने देते हैं
-        // const settingsRes = await fetch('/api/settings');
-        // if (settingsRes.ok) { ... }
+        const settingsRes = await fetch('/api/settings');
+        if (settingsRes.ok) {
+            const settingsData = await settingsRes.json();
+            if (settingsData.success && settingsData.settings) {
+                setAppSettings(settingsData.settings);
+            }
+        }
       } catch (error) {
         console.error("Settings fetch error", error);
       }
@@ -52,7 +56,6 @@ export default function Page() {
 
       if (tgUser) {
         try {
-          // जो API हमने पिछले स्टेप में बनाई थी उसे कॉल कर रहे हैं
           const res = await fetch('/api/user', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -71,7 +74,7 @@ export default function Page() {
             if (data.user) {
               setUser(data.user);
               
-              // Onboarding Check (Prisma uses camelCase: twitterLink)
+              // Onboarding Check
               if (!data.user.twitterLink) {
                 setShowOnboarding(true);
               }
@@ -112,8 +115,8 @@ export default function Page() {
 
   const handleOnboardingComplete = async (profileLink: string) => {
     try {
-      // यह API हम आगे बनाएंगे
-      const res = await fetch('/api/user/onboarding', {
+      // ✅ Corrected URL: /api/onboarding (matches your folder structure)
+      const res = await fetch('/api/onboarding', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -138,7 +141,6 @@ export default function Page() {
   };
 
   const renderScreen = () => {
-    // Props pass karte waqt user data bheja ja raha hai
     switch (activeScreen) {
       case 'home':
         return <HomeScreen user={user} isDark={isDark} onNavigate={setActiveScreen} />;
@@ -181,7 +183,6 @@ export default function Page() {
     );
   }
 
-  // Prisma uses boolean 'isBlocked'
   if (user && user.isBlocked) {
     return <BlockedScreen user={user} />;
   }

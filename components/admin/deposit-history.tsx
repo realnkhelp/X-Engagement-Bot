@@ -46,11 +46,12 @@ export default function AdminDepositHistory() {
       if (data.success) {
         const formattedDeposits = data.deposits.map((d: any) => ({
           id: d.id,
-          username: d.username || d.first_name || 'Unknown',
+          // Handle nested user object from Prisma or direct fields
+          username: d.user?.username || d.user?.firstName || 'Unknown',
           amount: Number(d.amount),
           method: d.method,
           transactionId: d.txid,
-          date: new Date(d.created_at).toLocaleDateString(),
+          date: new Date(d.createdAt).toLocaleDateString(),
           status: d.status,
           reason: d.reason
         }));

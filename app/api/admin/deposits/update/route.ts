@@ -1,35 +1,52 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { prisma } from '@/lib/db';
 
 export async function POST(req: Request) {
   try {
     const { transactionId, status, reason } = await req.json();
 
-    const [txs]: any = await db.query('SELECT * FROM transactions WHERE id = ?', [transactionId]);
-    const transaction = txs[0];
-
-    if (!transaction) {
-      return NextResponse.json({ error: 'Transaction not found' }, { status: 404 });
+    if (!transactionId || !status) {
+       return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
     }
 
-    if (transaction.status !== 'Pending') {
-      return NextResponse.json({ error: 'Transaction already processed' }, { status: 400 });
-    }
+    // Start a transaction
+    await prisma.$transaction(async (tx) => {
+      const transaction = await tx.transaction.findUnique({
+        where: { id: parseInt(transactionId) }
+      });
 
-    if (status === 'Completed') {
-      await db.query(
-        'UPDATE users SET balance = balance + ? WHERE telegram_id = ?',
-        [transaction.amount, transaction.user_id]
-      );
-    }
+      if (!transaction) {
+        throw new Error('Transaction not found');
+      }
 
-    await db.query(
-      'UPDATE transactions SET status = ?, reason = ? WHERE id = ?',
-      [status, reason || null, transactionId]
-    );
+      if (transaction.status !== 'Pending') {
+        throw new Error('Transaction already processed');
+      }
+
+      // If approved, add balance to user
+      if (status === 'Completed') {
+        await tx.user.update({
+          where: { id: transaction.userId },
+          data: {
+            balance: { increment: transaction.amount }
+          }
+        });
+      }
+
+      // Update the transaction status
+      await tx.transaction.update({
+        where: { id: parseInt(transactionId) },
+        data: {
+          status: status,
+          reason: reason || null
+        }
+      });
+    });
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    return NextResponse.json({ error: 'Server Error' }, { status: 500 });
+
+  } catch (error: any) {
+    console.error("Deposit Update Error:", error);
+    return NextResponse.json({ error: error.message || 'Server Error' }, { status: 500 });
   }
 }

@@ -51,12 +51,14 @@ export default function OnboardingScreen({ user, rewardAmount, onComplete }: Onb
     setIsClaiming(true);
 
     try {
+      // API call updated for new backend structure
       const response = await fetch('/api/onboarding', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          telegram_id: user?.id,
-          twitter_link: link
+          // Use telegramId property if available, fallback to id
+          telegramId: user?.telegramId || user?.id, 
+          twitterLink: link
         })
       });
 
@@ -64,6 +66,7 @@ export default function OnboardingScreen({ user, rewardAmount, onComplete }: Onb
       if (data.success) {
         onComplete(link);
       } else {
+        alert('Something went wrong. Please try again.');
         setIsClaiming(false);
       }
     } catch (error) {

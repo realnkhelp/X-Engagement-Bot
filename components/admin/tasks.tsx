@@ -7,11 +7,11 @@ interface Task {
   id: number;
   title: string;
   reward: number;
-  completed_count: number;
+  completedCount: number;
   quantity: number;
   status: string;
   link: string;
-  icon_url: string;
+  iconUrl: string;
 }
 
 export default function AdminTasks() {
@@ -91,7 +91,7 @@ export default function AdminTasks() {
       reward: task.reward.toString(),
       quantity: task.quantity.toString(),
       link: task.link || '',
-      iconUrl: task.icon_url || ''
+      iconUrl: task.iconUrl || ''
     });
     setIsEditing(true);
     setCurrentTaskId(task.id);
@@ -121,7 +121,7 @@ export default function AdminTasks() {
 
   const toggleStatus = async (task: Task) => {
     try {
-      const newStatus = task.status === 'active' ? false : true;
+      const newStatus = task.status === 'active' ? 'inactive' : 'active';
       await fetch('/api/admin/tasks', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -272,7 +272,7 @@ export default function AdminTasks() {
                 <tr key={task.id} className="border-b border-border hover:bg-muted/50 transition">
                   <td className="px-4 py-3 font-semibold text-foreground">
                     <div className="flex items-center gap-2">
-                      {task.icon_url && <img src={task.icon_url} className="w-6 h-6 rounded-full" />}
+                      {task.iconUrl && <img src={task.iconUrl} className="w-6 h-6 rounded-full" />}
                       {task.title}
                     </div>
                   </td>
@@ -280,7 +280,7 @@ export default function AdminTasks() {
                     {Number(task.reward).toFixed(2)} P
                   </td>
                   <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                    {task.completed_count} / {task.quantity}
+                    {task.completedCount} / {task.quantity}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <button 

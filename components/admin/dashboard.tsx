@@ -20,12 +20,14 @@ export default function AdminDashboard({ onNavigate }: DashboardProps) {
   });
 
   useEffect(() => {
+    // Theme Check
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'dark') {
       setIsDark(true);
       document.documentElement.classList.add('dark');
     }
 
+    // Fetch Stats
     const fetchStats = async () => {
       try {
         const res = await fetch('/api/admin/stats');
@@ -39,7 +41,7 @@ export default function AdminDashboard({ onNavigate }: DashboardProps) {
     };
 
     fetchStats();
-    const interval = setInterval(fetchStats, 30000);
+    const interval = setInterval(fetchStats, 30000); // Auto-refresh every 30s
     return () => clearInterval(interval);
   }, []);
 
@@ -89,7 +91,7 @@ export default function AdminDashboard({ onNavigate }: DashboardProps) {
       value: `$${Number(dbStats.totalUserBalance).toFixed(2)}`,
       icon: DollarSign,
       color: 'bg-purple-500',
-      targetTab: 'deposit-history'
+      targetTab: 'users'
     },
     {
       title: 'Payment Methods',
@@ -121,17 +123,17 @@ export default function AdminDashboard({ onNavigate }: DashboardProps) {
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
+          <h1 className="text-3xl font-bold mb-2 text-foreground">Dashboard</h1>
           <p className="text-muted-foreground">Welcome back to the admin panel</p>
         </div>
         <button
           onClick={toggleTheme}
           className="p-2 hover:bg-muted rounded-lg transition border border-border"
         >
-          {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          {isDark ? <Sun className="w-5 h-5 text-foreground" /> : <Moon className="w-5 h-5 text-foreground" />}
         </button>
       </div>
 
@@ -142,15 +144,15 @@ export default function AdminDashboard({ onNavigate }: DashboardProps) {
             <div
               key={idx}
               onClick={() => onNavigate?.(stat.targetTab)}
-              className="bg-card border border-border rounded-xl p-6 space-y-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer hover:bg-muted/50"
+              className="bg-card border border-border rounded-xl p-6 space-y-3 shadow-sm hover:shadow-md transition-all cursor-pointer hover:bg-muted/50"
             >
               <div className="flex items-center gap-4">
-                <div className={`${stat.color} p-3 rounded-lg`}>
+                <div className={`${stat.color} p-3 rounded-lg shadow-sm`}>
                   <Icon className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">{stat.title}</p>
-                  <p className="text-2xl font-bold">{stat.value}</p>
+                  <p className="text-sm text-muted-foreground font-medium">{stat.title}</p>
+                  <p className="text-2xl font-bold text-foreground">{stat.value}</p>
                 </div>
               </div>
             </div>
@@ -159,18 +161,18 @@ export default function AdminDashboard({ onNavigate }: DashboardProps) {
       </div>
 
       <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
-        <h2 className="text-xl font-bold mb-4">Live Overview</h2>
+        <h2 className="text-xl font-bold mb-4 text-foreground">Live Overview</h2>
         <div className="space-y-3">
           {todayRecords.map((record, idx) => (
             <div
               key={idx}
-              className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/50 transition"
+              className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/50 transition bg-background"
             >
               <div className="flex items-center gap-4">
-                <div className="w-2 h-2 rounded-full bg-blue-500" />
-                <p className="font-semibold text-sm">{record.type}</p>
+                <div className={`w-2 h-2 rounded-full ${idx === 0 ? 'bg-orange-500' : 'bg-blue-500'}`} />
+                <p className="font-semibold text-sm text-foreground">{record.type}</p>
               </div>
-              <span className="text-lg font-bold">{record.count}</span>
+              <span className="text-lg font-bold text-foreground">{record.count}</span>
             </div>
           ))}
         </div>
