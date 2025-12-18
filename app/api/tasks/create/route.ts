@@ -1,50 +1,65 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { prisma } from '@/lib/db';
 
 export async function POST(req: Request) {
   try {
-    const { userId, category_id, link, quantity, payment_method } = await req.json();
+    const body = await req.json();
+    const { userId, categoryId, link, quantity, totalPoints } = body;
 
-    const [users]: any = await db.query('SELECT balance, points FROM users WHERE telegram_id = ?', [userId]);
-    const user = users[0];
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    if (!userId || !categoryId || !link || !quantity) {
+      return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
     }
 
-    const [categories]: any = await db.query('SELECT * FROM categories WHERE id = ?', [category_id]);
-    const category = categories[0];
+    await prisma.$transaction(async (tx) => {
+      const user = await tx.user.findUnique({
+        where: { telegramId: BigInt(userId) }
+      });
 
-    if (!category) {
-      return NextResponse.json({ error: 'Invalid Category' }, { status: 400 });
-    }
+      if (!user) throw new Error('User not found');
 
-    const totalPointsCost = Number(category.price_points) * Number(quantity);
-    const totalUsdCost = Number(category.price_usd) * Number(quantity);
-
-    if (payment_method === 'POINTS') {
-      if (Number(user.points) < totalPointsCost) {
-        return NextResponse.json({ error: 'Insufficient Points' }, { status: 400 });
+      if (user.points < Number(totalPoints)) {
+        throw new Error('Insufficient Balance');
       }
-      await db.query('UPDATE users SET points = points - ? WHERE telegram_id = ?', [totalPointsCost, userId]);
-    } 
-    else if (payment_method === 'WALLET') {
-      if (Number(user.balance) < totalUsdCost) {
-        return NextResponse.json({ error: 'Insufficient Wallet Balance' }, { status: 400 });
-      }
-      await db.query('UPDATE users SET balance = balance - ? WHERE telegram_id = ?', [totalUsdCost, userId]);
-    } 
-    else {
-      return NextResponse.json({ error: 'Invalid Payment Method' }, { status: 400 });
-    }
 
-    const [result]: any = await db.query(
-      'INSERT INTO tasks (creator_id, category_id, link, quantity, reward, status, completed_count) VALUES (?, ?, ?, ?, ?, "active", 0)',
-      [userId, category_id, link, quantity, category.price_points]
-    );
+      const rate = await tx.taskRate.findFirst({
+        where: { id: parseInt(categoryId) } // Assuming categoryId is passed as ID from frontend
+      });
+      
+      const categoryName = rate ? rate.category : 'General';
+      const rewardPerTask = rate ? rate.points / 2 : 1; 
 
-    return NextResponse.json({ success: true, taskId: result.insertId });
-  } catch (error) {
-    return NextResponse.json({ error: 'Server Error' }, { status: 500 });
+      await tx.user.update({
+        where: { id: user.id },
+        data: { points: { decrement: Number(totalPoints) } }
+      });
+
+      await tx.task.create({
+        data: {
+          creatorId: user.telegramId,
+          title: `Task by ${user.firstName}`,
+          categoryId: categoryName,
+          link: link,
+          quantity: parseInt(quantity),
+          reward: rewardPerTask,
+          type: 'user',
+          status: 'active'
+        }
+      });
+
+      await tx.transaction.create({
+        data: {
+          userId: user.id,
+          amount: Number(totalPoints),
+          type: 'Task_Creation',
+          status: 'Completed',
+          method: 'Points'
+        }
+      });
+    });
+
+    return NextResponse.json({ success: true });
+
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Failed' }, { status: 400 });
   }
 }

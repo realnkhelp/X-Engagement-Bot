@@ -1,17 +1,26 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Bell } from 'lucide-react';
+
+interface Announcement {
+  id: number;
+  title: string;
+  message: string;
+  category: string;
+  createdAt: string;
+}
 
 export default function AnnouncementsScreen() {
-  const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch('/api/announcements')
       .then(res => res.json())
       .then(data => {
-        setAnnouncements(data);
+        if (data.success) {
+          setAnnouncements(data.announcements);
+        }
         setLoading(false);
       })
       .catch(err => setLoading(false));
@@ -19,12 +28,12 @@ export default function AnnouncementsScreen() {
 
   const getCategoryColor = (category: string) => {
     const colors: Record<string, string> = {
-      feature: 'bg-green-100 text-green-700',
-      update: 'bg-blue-100 text-blue-700',
-      important: 'bg-red-100 text-red-700',
-      reward: 'bg-purple-100 text-purple-700',
+      feature: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+      update: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+      important: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+      reward: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
     };
-    return colors[category] || 'bg-gray-100 text-gray-700';
+    return colors[category] || 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400';
   };
 
   const formatDate = (dateString: string) => {
@@ -56,12 +65,12 @@ export default function AnnouncementsScreen() {
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1">
                   <p className="font-bold text-foreground">{announcement.title}</p>
-                  <p className="text-sm text-muted-foreground mt-1">{announcement.message}</p>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    {formatDate(announcement.created_at)}
+                  <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{announcement.message}</p>
+                  <p className="text-xs text-muted-foreground mt-2 font-medium">
+                    {formatDate(announcement.createdAt)}
                   </p>
                 </div>
-                <span className={`text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap uppercase ${getCategoryColor(announcement.category)}`}>
+                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-md whitespace-nowrap uppercase tracking-wide ${getCategoryColor(announcement.category)}`}>
                   {announcement.category}
                 </span>
               </div>

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Settings } from 'lucide-react';
 
 interface MaintenanceScreenProps {
   maintenanceDate: string;
@@ -16,7 +15,6 @@ export default function MaintenanceScreen({ maintenanceDate, maintenanceMessage,
   const [isFinished, setIsFinished] = useState(false);
 
   useEffect(() => {
-    // Admin settings se aayi maintenance date ko target time banaya
     const maintenanceEnd = new Date(maintenanceDate).getTime();
 
     const updateCountdown = () => {
@@ -46,7 +44,6 @@ export default function MaintenanceScreen({ maintenanceDate, maintenanceMessage,
   return (
     <div className={`min-h-screen w-full flex items-center justify-center p-5 ${isFinished ? 'bg-green-700' : 'bg-[#34495e]'} transition-colors`}>
       <style jsx global>{`
-        /* Global Styles */
         .maintenance-container {
             background-color: #2c3e50; 
             padding: 30px 30px; 
@@ -117,11 +114,11 @@ export default function MaintenanceScreen({ maintenanceDate, maintenanceMessage,
         </span> 
 
         <h1 className="title">
-          {isFinished ? 'सिस्टम अब ऑनलाइन है!' : 'SYSTEM MAINTENANCE IN PROGRESS'}
+          {isFinished ? 'सिस्टम अब ऑनलाइन है!' : 'SYSTEM MAINTENANCE'}
         </h1>
 
         <p className="description">
-          {maintenanceMessage || 'हम वर्तमान में एक निर्धारित रखरखाव कर रहे हैं। आपकी असुविधा के लिए हमें खेद है।'}
+          {maintenanceMessage || 'We are currently performing scheduled maintenance.'}
         </p>
         
         {!isFinished ? (
@@ -133,24 +130,24 @@ export default function MaintenanceScreen({ maintenanceDate, maintenanceMessage,
             <div className="countdown">
               <div className="countdown-item">
                 <span id="days" className="countdown-number">{formatNumber(timeLeft.days)}</span>
-                <span className="countdown-label">दिन</span>
+                <span className="countdown-label">Days</span>
               </div>
               <div className="countdown-item">
                 <span id="hours" className="countdown-number">{formatNumber(timeLeft.hours)}</span>
-                <span className="countdown-label">घंटे</span>
+                <span className="countdown-label">Hours</span>
               </div>
               <div className="countdown-item">
                 <span id="minutes" className="countdown-number">{formatNumber(timeLeft.minutes)}</span>
-                <span className="countdown-label">मिनट</span>
+                <span className="countdown-label">Min</span>
               </div>
               <div className="countdown-item">
                 <span id="seconds" className="countdown-number">{formatNumber(timeLeft.seconds)}</span>
-                <span className="countdown-label">सेकंड</span>
+                <span className="countdown-label">Sec</span>
               </div>
             </div>
           </>
         ) : (
-          <div className="mt-6 text-xl font-bold text-[#2ecc71]">आप अब ऐप इस्तेमाल कर सकते हैं!</div>
+          <div className="mt-6 text-xl font-bold text-[#2ecc71]">You can use the app now!</div>
         )}
       </div>
     </div>

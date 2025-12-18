@@ -16,8 +16,9 @@ export default function ReportScreen({ onNavigate }: ReportScreenProps) {
     profileLink: '',
   });
 
+  // Prisma needs telegramId
   const tgUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
-  const userId = tgUser?.id || 123456789;
+  const telegramId = tgUser?.id || 123456789; // Default for testing
 
   useEffect(() => {
     if (activeTab === 'history') {
@@ -28,7 +29,7 @@ export default function ReportScreen({ onNavigate }: ReportScreenProps) {
   const fetchReports = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/report?userId=${userId}`);
+      const res = await fetch(`/api/report?userId=${telegramId}`);
       const data = await res.json();
       if (data.success) {
         setReports(data.reports);
@@ -48,10 +49,10 @@ export default function ReportScreen({ onNavigate }: ReportScreenProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId,
-          cheater_username: formData.username,
-          task_link: formData.taskLink,
-          cheater_profile_link: formData.profileLink
+          telegramId, // Changed to match backend
+          cheaterUsername: formData.username, // camelCase
+          taskLink: formData.taskLink, // camelCase
+          cheaterProfileLink: formData.profileLink // camelCase
         })
       });
 
@@ -59,9 +60,11 @@ export default function ReportScreen({ onNavigate }: ReportScreenProps) {
         alert('Report Submitted!');
         setFormData({ username: '', taskLink: '', profileLink: '' });
         setActiveTab('history');
+      } else {
+        alert('Failed to submit report');
       }
     } catch (error) {
-      alert('Failed to submit report');
+      alert('Network Error');
     }
   };
 
@@ -208,24 +211,24 @@ export default function ReportScreen({ onNavigate }: ReportScreenProps) {
                   <div className="flex gap-3">
                     <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden shrink-0">
                       <img 
-                        src={report.avatar || "https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png"} 
-                        alt={report.first_name} 
+                        src={report.reporter?.avatar || "https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png"} 
+                        alt={report.reporter?.firstName} 
                         className="w-full h-full object-cover"
                       />
                     </div>
                     <div>
-                      <h3 className="font-bold text-sm">{report.first_name}</h3>
-                      <p className="text-xs text-muted-foreground mt-0.5">Reported: {report.cheater_username}</p>
+                      <h3 className="font-bold text-sm">{report.reporter?.firstName}</h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">Reported: {report.cheaterUsername}</p>
                       <p className="text-[10px] text-muted-foreground mt-1">
-                        {new Date(report.created_at).toLocaleDateString()}
+                        {new Date(report.createdAt).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
 
                   <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${
-                    report.status === 'resolved'
+                    report.status === 'Resolved'
                       ? 'bg-green-100 text-green-600'
-                      : report.status === 'rejected' 
+                      : report.status === 'Rejected' 
                       ? 'bg-red-100 text-red-600'
                       : 'bg-yellow-100 text-yellow-600'
                   }`}>
@@ -233,7 +236,7 @@ export default function ReportScreen({ onNavigate }: ReportScreenProps) {
                   </span>
                 </div>
 
-                {report.status === 'rejected' && report.reason && (
+                {report.status === 'Rejected' && report.reason && (
                   <div className="mt-3 pt-2 border-t border-red-200">
                     <p className="text-xs text-red-500 font-bold">
                       Reason: {report.reason}

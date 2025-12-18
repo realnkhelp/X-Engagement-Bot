@@ -3,18 +3,27 @@
 import { useState, useEffect } from 'react';
 import { FileText } from 'lucide-react';
 
+interface Rule {
+  id: number;
+  title: string;
+  description: string;
+  icon: string | null;
+}
+
 export default function RulesScreen() {
-  const [rules, setRules] = useState<any[]>([]);
+  const [rules, setRules] = useState<Rule[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch('/api/rules')
       .then(res => res.json())
       .then(data => {
-        setRules(data);
-        setLoading(false);
+        if (data.success) {
+          setRules(data.rules);
+        }
       })
-      .catch(err => setLoading(false));
+      .catch(err => console.error(err))
+      .finally(() => setLoading(false));
   }, []);
 
   if (loading) {
@@ -47,7 +56,9 @@ export default function RulesScreen() {
                 </div>
                 <div className="flex-1">
                   <p className="font-bold text-foreground text-lg">{rule.title}</p>
-                  <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{rule.description}</p>
+                  <p className="text-sm text-muted-foreground mt-1 leading-relaxed whitespace-pre-wrap">
+                    {rule.description}
+                  </p>
                 </div>
               </div>
             </div>

@@ -1,18 +1,35 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import { Headset } from 'lucide-react';
 
 interface BlockedScreenProps {
   user?: any;
 }
 
-export default function BlockedScreen({ user }: BlockedScreenProps) {
-  
-  const defaultContacts = [
-    { name: "Contact Nitesh", link: "https://t.me/niteshadmin" },
-    { name: "Contact Muzakkir", link: "https://t.me/muzakkir_04" }
-  ];
+interface SupportLink {
+  id: number;
+  title: string;
+  url: string;
+}
 
-  const firstName = user?.first_name || '';
-  const lastName = user?.last_name || '';
+export default function BlockedScreen({ user }: BlockedScreenProps) {
+  const [contacts, setContacts] = useState<SupportLink[]>([]);
+
+  useEffect(() => {
+    fetch('/api/support')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setContacts(data.links);
+        }
+      })
+      .catch(err => console.error(err));
+  }, []);
+
+  // Handle both camelCase (Prisma) and snake_case (Legacy) just in case
+  const firstName = user?.firstName || user?.first_name || '';
+  const lastName = user?.lastName || user?.last_name || '';
   const fullName = `${firstName} ${lastName}`.trim() || user?.username || 'User';
   
   const displayAvatar = user?.avatar || `https://ui-avatars.com/api/?name=${fullName}&background=random&color=fff`;
@@ -49,18 +66,22 @@ export default function BlockedScreen({ user }: BlockedScreenProps) {
         </div>
 
         <div className="flex flex-col gap-3">
-          {defaultContacts.map((contact, index) => (
-            <a 
-              key={index}
-              href={contact.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center w-full py-3.5 bg-[#0084ff] hover:bg-[#006bce] text-white font-semibold rounded-full transition-all shadow-lg shadow-blue-500/25 active:scale-95"
-            >
-              <Headset className="w-5 h-5 mr-2.5" />
-              {contact.name}
-            </a>
-          ))}
+          {contacts.length > 0 ? (
+            contacts.map((contact) => (
+              <a 
+                key={contact.id}
+                href={contact.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center w-full py-3.5 bg-[#0084ff] hover:bg-[#006bce] text-white font-semibold rounded-full transition-all shadow-lg shadow-blue-500/25 active:scale-95"
+              >
+                <Headset className="w-5 h-5 mr-2.5" />
+                {contact.title}
+              </a>
+            ))
+          ) : (
+            <p className="text-sm text-gray-500">No support contacts available.</p>
+          )}
         </div>
 
       </div>

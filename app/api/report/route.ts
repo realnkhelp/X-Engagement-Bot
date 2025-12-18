@@ -1,41 +1,69 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { prisma } from '@/lib/db';
 
+// POST: Create a new report
 export async function POST(req: Request) {
   try {
-    const { userId, cheater_username, task_link, cheater_profile_link } = await req.json();
+    const { telegramId, cheaterUsername, taskLink, cheaterProfileLink } = await req.json();
 
-    if (!userId || !cheater_username) {
+    if (!telegramId || !cheaterUsername) {
       return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
     }
 
-    await db.query(
-      'INSERT INTO reports (user_id, cheater_username, task_link, cheater_profile_link, subject, message, status) VALUES (?, ?, ?, ?, "Cheating Report", "User reported suspicious activity", "pending")',
-      [userId, cheater_username, task_link, cheater_profile_link]
-    );
+    const user = await prisma.user.findUnique({
+      where: { telegramId: BigInt(telegramId) }
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    await prisma.report.create({
+      data: {
+        reporterId: user.id, // Linking internal ID
+        cheaterUsername: cheaterUsername,
+        taskLink: taskLink || '',
+        cheaterProfileLink: cheaterProfileLink || '',
+        subject: 'Cheating Report',
+        message: 'User reported suspicious activity',
+        status: 'Pending'
+      }
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    console.error("Report Error:", error);
     return NextResponse.json({ error: 'Server Error' }, { status: 500 });
   }
 }
 
+// GET: Fetch reports by a user
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const userId = searchParams.get('userId');
+    const telegramId = searchParams.get('userId');
 
-    if (!userId) {
+    if (!telegramId) {
       return NextResponse.json({ error: 'User ID Missing' }, { status: 400 });
     }
 
-    const [reports]: any = await db.query(`
-      SELECT r.*, u.first_name, u.avatar 
-      FROM reports r
-      JOIN users u ON r.user_id = u.telegram_id
-      WHERE r.user_id = ?
-      ORDER BY r.created_at DESC
-    `, [userId]);
+    const user = await prisma.user.findUnique({
+      where: { telegramId: BigInt(telegramId) }
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    const reports = await prisma.report.findMany({
+      where: { reporterId: user.id },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        reporter: {
+          select: { firstName: true, avatar: true }
+        }
+      }
+    });
 
     return NextResponse.json({ success: true, reports });
   } catch (error) {

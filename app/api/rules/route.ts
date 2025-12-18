@@ -1,39 +1,70 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { prisma } from '@/lib/db';
 
+// GET: Fetch all rules
 export async function GET() {
   try {
-    const [rows] = await db.query('SELECT * FROM rules ORDER BY id DESC');
-    return NextResponse.json(rows);
+    const rules = await prisma.rule.findMany({
+      orderBy: { id: 'desc' } // Or use displayOrder if you implement it later
+    });
+    return NextResponse.json({ success: true, rules });
   } catch (error) {
     return NextResponse.json({ error: 'Server Error' }, { status: 500 });
   }
 }
 
+// POST: Add a new rule (For Admin)
 export async function POST(req: Request) {
   try {
     const { title, description, icon } = await req.json();
-    await db.query('INSERT INTO rules (title, description, icon) VALUES (?, ?, ?)', [title, description, icon]);
-    return NextResponse.json({ success: true });
+    
+    if (!title || !description) {
+      return NextResponse.json({ error: 'Title and description required' }, { status: 400 });
+    }
+
+    const newRule = await prisma.rule.create({
+      data: {
+        title,
+        description,
+        icon
+      }
+    });
+
+    return NextResponse.json({ success: true, rule: newRule });
   } catch (error) {
     return NextResponse.json({ error: 'Server Error' }, { status: 500 });
   }
 }
 
+// PUT: Update a rule (For Admin)
 export async function PUT(req: Request) {
   try {
     const { id, title, description, icon } = await req.json();
-    await db.query('UPDATE rules SET title = ?, description = ?, icon = ? WHERE id = ?', [title, description, icon, id]);
+    
+    await prisma.rule.update({
+      where: { id: parseInt(id) },
+      data: {
+        title,
+        description,
+        icon
+      }
+    });
+
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: 'Server Error' }, { status: 500 });
   }
 }
 
+// DELETE: Remove a rule (For Admin)
 export async function DELETE(req: Request) {
   try {
     const { id } = await req.json();
-    await db.query('DELETE FROM rules WHERE id = ?', [id]);
+    
+    await prisma.rule.delete({
+      where: { id: parseInt(id) }
+    });
+
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: 'Server Error' }, { status: 500 });
