@@ -3,10 +3,10 @@ import { prisma } from '@/lib/db';
 
 export async function GET() {
   try {
-    const announcements = await prisma.announcement.findMany({
-      orderBy: { createdAt: 'desc' }
+    const rules = await prisma.rule.findMany({
+      orderBy: { id: 'desc' }
     });
-    return NextResponse.json({ success: true, announcements });
+    return NextResponse.json({ success: true, rules });
   } catch (error) {
     return NextResponse.json({ error: 'Server Error' }, { status: 500 });
   }
@@ -14,17 +14,17 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const { title, description, type } = await req.json();
+    const { title, description, icon } = await req.json();
 
     if (!title || !description) {
       return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
     }
 
-    await prisma.announcement.create({
+    await prisma.rule.create({
       data: {
         title,
-        message: description,
-        category: type || 'Feature'
+        description,
+        icon
       }
     });
 
@@ -36,14 +36,14 @@ export async function POST(req: Request) {
 
 export async function PUT(req: Request) {
   try {
-    const { id, title, description, type } = await req.json();
+    const { id, title, description, icon } = await req.json();
 
-    await prisma.announcement.update({
+    await prisma.rule.update({
       where: { id: parseInt(id) },
       data: {
         title,
-        message: description,
-        category: type
+        description,
+        icon
       }
     });
 
@@ -56,7 +56,7 @@ export async function PUT(req: Request) {
 export async function DELETE(req: Request) {
   try {
     const { id } = await req.json();
-    await prisma.announcement.delete({
+    await prisma.rule.delete({
       where: { id: parseInt(id) }
     });
     return NextResponse.json({ success: true });

@@ -10,7 +10,7 @@ interface Rule {
   icon: string;
 }
 
-export default function RulesPage() {
+export default function AdminRules() {
   const [rules, setRules] = useState<Rule[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -30,10 +30,10 @@ export default function RulesPage() {
   const fetchRules = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/rules');
+      const res = await fetch('/api/admin/rules');
       const data = await res.json();
-      if (Array.isArray(data)) {
-        setRules(data);
+      if (data.success && Array.isArray(data.rules)) {
+        setRules(data.rules);
       }
     } catch (error) {
       console.error(error);
@@ -55,14 +55,14 @@ export default function RulesPage() {
     try {
       if (isEditing && editId) {
         // Update Rule
-        await fetch('/api/rules', {
+        await fetch('/api/admin/rules', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: editId, ...formData }),
         });
       } else {
         // Create Rule
-        await fetch('/api/rules', {
+        await fetch('/api/admin/rules', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData),
@@ -82,16 +82,17 @@ export default function RulesPage() {
     setFormData({
       title: rule.title,
       description: rule.description,
-      icon: rule.icon
+      icon: rule.icon || ''
     });
     setIsEditing(true);
     setEditId(rule.id);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDelete = async (id: number) => {
     if (confirm('Are you sure you want to delete this rule?')) {
       try {
-        await fetch('/api/rules', {
+        await fetch('/api/admin/rules', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id }),

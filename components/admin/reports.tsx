@@ -10,7 +10,7 @@ interface Report {
   reporterAvatar: string;
   type: string;
   message: string;
-  status: 'pending' | 'resolved' | 'rejected';
+  status: 'Pending' | 'Resolved' | 'Rejected';
   date: string;
   reason?: string;
   reportedUser: {
@@ -20,7 +20,7 @@ interface Report {
     taskLink: string;
     profileLink: string;
     isBlocked: boolean;
-    userId: number;
+    telegramId: string;
   };
 }
 
@@ -45,22 +45,22 @@ export default function AdminReports() {
       if (data.success) {
         const formattedReports = data.reports.map((r: any) => ({
           id: r.id,
-          reporterName: r.reporter_name || 'Unknown',
-          reporterUsername: r.reporter_username || 'No Username',
-          reporterAvatar: r.reporter_avatar || 'https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png',
+          reporterName: r.reporter?.firstName || 'Unknown',
+          reporterUsername: r.reporter?.username || 'No Username',
+          reporterAvatar: r.reporter?.avatar || 'https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png',
           type: r.subject || 'Report',
           message: r.message,
           status: r.status,
-          date: new Date(r.created_at).toLocaleDateString(),
+          date: new Date(r.createdAt).toLocaleDateString(),
           reason: r.reason,
           reportedUser: {
-            name: r.cheater_username || 'Target User',
-            username: r.cheater_username,
-            avatar: r.target_avatar || 'https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png',
-            taskLink: r.task_link,
-            profileLink: r.cheater_profile_link,
-            isBlocked: r.target_blocked === 1,
-            userId: r.target_id
+            name: r.targetUser?.firstName || r.cheaterUsername || 'Target User',
+            username: r.cheaterUsername,
+            avatar: r.targetUser?.avatar || 'https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png',
+            taskLink: r.taskLink,
+            profileLink: r.cheaterProfileLink,
+            isBlocked: r.targetUser?.isBlocked || false,
+            telegramId: r.targetUser?.telegramId
           }
         }));
         setReports(formattedReports);
@@ -84,7 +84,7 @@ export default function AdminReports() {
     setSelectedReport(null);
   };
 
-  const updateStatus = async (id: number, newStatus: 'resolved' | 'rejected', reason?: string) => {
+  const updateStatus = async (id: number, newStatus: 'Resolved' | 'Rejected', reason?: string) => {
     try {
       const res = await fetch('/api/admin/reports/update', {
         method: 'POST',
@@ -94,7 +94,7 @@ export default function AdminReports() {
 
       if (res.ok) {
         setReports(reports.map(r => r.id === id ? { ...r, status: newStatus, reason: reason } : r));
-        if (newStatus === 'resolved' || newStatus === 'rejected') handleCloseModal();
+        if (newStatus === 'Resolved' || newStatus === 'Rejected') handleCloseModal();
       }
     } catch (error) {
       alert('Failed to update status');
@@ -107,24 +107,30 @@ export default function AdminReports() {
 
   const confirmReject = () => {
     if (selectedReport && rejectReason) {
-      updateStatus(selectedReport.id, 'rejected', rejectReason);
+      updateStatus(selectedReport.id, 'Rejected', rejectReason);
     }
   };
 
   const toggleBlockUser = async () => {
-    if (selectedReport && selectedReport.reportedUser.userId) {
+    if (selectedReport && selectedReport.reportedUser.telegramId) {
       const newBlockStatus = !selectedReport.reportedUser.isBlocked;
       
       try {
-        const res = await fetch('/api/admin/users/block', {
+        const res = await fetch('/api/admin/users/update', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: selectedReport.reportedUser.userId, isBlocked: newBlockStatus })
+          body: JSON.stringify({ 
+            telegramId: selectedReport.reportedUser.telegramId, 
+            isBlocked: newBlockStatus,
+            // Pass existing values to prevent overwriting with null if API requires all fields
+            balance: 0, 
+            points: 0 
+          })
         });
 
         if (res.ok) {
           const updatedReports = reports.map(r => 
-            r.reportedUser.userId === selectedReport.reportedUser.userId 
+            r.reportedUser.telegramId === selectedReport.reportedUser.telegramId 
               ? { ...r, reportedUser: { ...r.reportedUser, isBlocked: newBlockStatus } }
               : r
           );
@@ -139,12 +145,12 @@ export default function AdminReports() {
         alert('Failed to update block status');
       }
     } else {
-      alert('Cannot block user: User not found in database');
+      alert('Cannot block user: User not found in database or ID missing');
     }
   };
 
   const handleDelete = (id: number) => {
-    if (confirm('Delete functionality is not connected to DB yet. Hide locally?')) {
+    if (confirm('Are you sure you want to hide this report?')) {
       setReports(reports.filter(r => r.id !== id));
     }
   };
@@ -193,8 +199,8 @@ export default function AdminReports() {
                   </td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${
-                      report.status === 'resolved' ? 'bg-green-100 text-green-700' :
-                      report.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                      report.status === 'Resolved' ? 'bg-green-100 text-green-700' :
+                      report.status === 'Rejected' ? 'bg-red-100 text-red-700' :
                       'bg-yellow-100 text-yellow-700'
                     }`}>
                       {report.status}
@@ -210,7 +216,7 @@ export default function AdminReports() {
                         <Eye className="w-4 h-4" /> View
                       </button>
                       <button 
-                        onClick={() => updateStatus(report.id, 'resolved')} 
+                        onClick={() => updateStatus(report.id, 'Resolved')} 
                         className="flex items-center gap-1.5 px-3 py-1.5 text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition text-xs font-semibold whitespace-nowrap"
                       >
                         <CheckCircle className="w-4 h-4" /> Resolve
@@ -315,7 +321,7 @@ export default function AdminReports() {
 
               <div className="flex items-center justify-center gap-3 pt-2">
                 <button 
-                  onClick={() => updateStatus(selectedReport.id, 'resolved')}
+                  onClick={() => updateStatus(selectedReport.id, 'Resolved')}
                   className="flex-1 flex items-center justify-center gap-2 bg-green-600 text-white py-2.5 rounded-xl font-semibold hover:bg-green-700 transition shadow-sm active:scale-95"
                 >
                   <CheckCircle className="w-4 h-4" /> Resolve

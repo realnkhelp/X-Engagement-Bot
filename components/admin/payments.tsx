@@ -63,14 +63,12 @@ export default function AdminPayments() {
   const handleSubmit = async () => {
     try {
       if (isEditMode && currentId !== null) {
-        // Update
         await fetch('/api/admin/payments', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: currentId, ...formData })
         });
       } else {
-        // Create
         await fetch('/api/admin/payments', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { prisma } from '@/lib/db';
 
 export async function POST(req: Request) {
   try {
@@ -9,10 +9,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
     }
 
-    await db.query(
-      'UPDATE reports SET status = ?, reason = ? WHERE id = ?',
-      [status, reason || null, reportId]
-    );
+    await prisma.report.update({
+      where: { id: parseInt(reportId) },
+      data: {
+        status: status,
+        reason: reason || null
+      }
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -35,13 +35,13 @@ export default function AdminAnnouncement() {
     try {
       const res = await fetch('/api/admin/announcements');
       const data = await res.json();
-      if (data.success) {
+      if (data.success && Array.isArray(data.announcements)) {
         const formatted = data.announcements.map((item: any) => ({
           id: item.id,
           title: item.title,
           description: item.message,
           type: item.category,
-          date: new Date(item.created_at).toLocaleDateString(),
+          date: new Date(item.createdAt).toLocaleDateString(),
         }));
         setAnnouncements(formatted);
       }
