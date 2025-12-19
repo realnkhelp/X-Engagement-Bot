@@ -8,8 +8,17 @@ export async function GET(req: Request) {
 
     if (!telegramId) return NextResponse.json({ error: 'ID required' });
 
+    // Ensure telegramId valid BigInt hai
+    let creatorIdBigInt;
+    try {
+        creatorIdBigInt = BigInt(telegramId);
+    } catch (e) {
+        return NextResponse.json({ error: 'Invalid User ID' }, { status: 400 });
+    }
+
+    // Database se user ke banaye hue tasks nikalo
     const tasks = await prisma.task.findMany({
-      where: { creatorId: BigInt(telegramId) },
+      where: { creatorId: creatorIdBigInt },
       orderBy: { createdAt: 'desc' },
       include: {
         completions: {
@@ -18,19 +27,20 @@ export async function GET(req: Request) {
               select: { firstName: true, username: true, avatar: true, twitterLink: true }
             }
           },
-          take: 50 
+          take: 50 // Last 50 completers dikhao
         }
       }
     });
 
-    // Fix: BigInt ko String mein badlo
+    // BigInt ko String me badal kar bhejo
     const formattedTasks = tasks.map((task) => ({
-      id: task.id.toString(), // <-- YEH HAI ASLI FIX
+      id: task.id.toString(),
       categoryId: task.categoryId,
       completedCount: task.completedCount,
       quantity: task.quantity,
       link: task.link,
       status: task.status,
+      reward: task.reward.toString(),
       completers: task.completions.map(c => ({
         name: c.user.firstName,
         username: c.user.username,

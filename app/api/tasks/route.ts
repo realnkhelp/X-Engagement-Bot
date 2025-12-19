@@ -1,87 +1,73 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import redis from '@/lib/redis';
 
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const telegramId = searchParams.get('userId');
 
-    if (!telegramId) {
-      return NextResponse.json({ error: 'User ID required' }, { status: 400 });
+    // 1. Pehle Telegram ID se User ka asli Internal ID nikalo
+    // Kyunki 'completions' table mein Internal ID save hoti hai, Telegram ID nahi.
+    let userInternalId = null;
+    if (telegramId) {
+        try {
+            // Telegram ID ko BigInt mein convert karke user dhundo
+            const user = await prisma.user.findUnique({
+                where: { telegramId: BigInt(telegramId) },
+                select: { id: true }
+            });
+            if (user) userInternalId = user.id;
+        } catch (e) {
+            console.error("User ID conversion error:", e);
+        }
     }
 
-    let userInternalId;
-    const cacheKeyProfile = `user:profile:${telegramId}`;
-    const cachedProfile = await redis.get(cacheKeyProfile);
-
-    if (cachedProfile) {
-      userInternalId = JSON.parse(cachedProfile).id;
-    } else {
-      const user = await prisma.user.findUnique({
-        where: { telegramId: BigInt(telegramId) },
-        select: { id: true }
-      });
-      if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
-      userInternalId = user.id;
-    }
-
-    const tasksCacheKey = 'tasks:all_active';
-    let tasksStr = await redis.get(tasksCacheKey);
-    let allTasks;
-
-    if (tasksStr) {
-      allTasks = JSON.parse(tasksStr);
-    } else {
-      const tasksFromDb = await prisma.task.findMany({
-        where: { status: 'active' },
-        include: {
-          creator: {
-            select: { firstName: true, avatar: true, username: true }
-          }
+    // 2. Database se saare 'Active' tasks nikalo
+    const tasksFromDb = await prisma.task.findMany({
+      where: {
+        status: 'active',
+      },
+      orderBy: { createdAt: 'desc' }, // Naya task sabse upar dikhega
+      include: {
+        creator: {
+            select: { firstName: true, username: true, avatar: true }
         },
-        orderBy: { createdAt: 'desc' }
-      });
-      
-      const safeTasks = tasksFromDb.map((task: any) => ({
-        ...task,
-        creatorId: task.creatorId ? task.creatorId.toString() : null,
-        reward: task.reward.toString()
-      }));
-
-      await redis.set(tasksCacheKey, JSON.stringify(safeTasks), 'EX', 300);
-      allTasks = safeTasks;
-    }
-
-    const userCompleted = await prisma.userTask.findMany({
-      where: { userId: userInternalId },
-      select: { taskId: true }
+        completions: true // Check karne ke liye ki kisne complete kiya hai
+      }
     });
 
-    const completedSet = new Set(userCompleted.map(t => t.taskId));
+    // 3. Data format aur Filter karo (Jo user kar chuka hai use list se hatao)
+    const formattedTasks = tasksFromDb.map(task => {
+        // Check: Kya user ne ye task pehle hi kar liya hai? (Internal ID match)
+        const isCompleted = userInternalId ? task.completions.some(c => c.userId === userInternalId) : false;
+        
+        // Check: Kya task ki quantity full ho gayi hai?
+        const isQuotaFull = task.completedCount >= task.quantity;
 
-    const finalTasks = allTasks
-      .filter((t: any) => {
-        const isCompleted = completedSet.has(t.id);
-        const isQuotaFull = t.completedCount >= t.quantity;
-        return !isCompleted && !isQuotaFull;
-      })
-      .map((t: any) => ({
-        id: t.id,
-        creatorName: t.creator ? t.creator.firstName : 'Official Task',
-        creatorUsername: t.creator ? t.creator.username : '',
-        creatorAvatar: t.creator ? t.creator.avatar : t.iconUrl,
-        category: t.categoryId,
-        completedCount: t.completedCount,
-        quantity: t.quantity,
-        reward: t.reward,
-        type: t.type,
-        link: t.link
-      }));
+        // Agar task complete ho gaya hai ya full ho gaya hai, to list mein mat dikhao
+        if (isCompleted || isQuotaFull) {
+            return null; 
+        }
 
-    return NextResponse.json({ success: true, tasks: finalTasks });
+        // Agar task bacha hai, to dikhao
+        return {
+            id: task.id.toString(), // BigInt ID ko string banao
+            title: task.title,
+            reward: Number(task.reward), // Decimal ko Number banao
+            link: task.link,
+            iconUrl: task.iconUrl || task.creator?.avatar || "", // Icon nahi hai to creator ka avatar dikhao
+            category: task.categoryId || "General",
+            status: task.status,
+            creatorName: task.creator?.firstName || "Official Task",
+            quantity: task.quantity,
+            completedCount: task.completedCount
+        };
+    }).filter(task => task !== null); // Null walon ko filter karke hata do
+
+    return NextResponse.json({ success: true, tasks: formattedTasks });
 
   } catch (error) {
+    console.error("Task List Error:", error);
     return NextResponse.json({ error: 'Server Error' }, { status: 500 });
   }
 }
