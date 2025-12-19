@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CheckCircle, ExternalLink, Clock } from 'lucide-react';
+import { CheckCircle, ExternalLink, Clock, ShieldCheck, User } from 'lucide-react';
 
 interface TasksScreenProps {
   user: any; 
@@ -7,12 +7,13 @@ interface TasksScreenProps {
 
 interface Task {
   id: number;
-  creatorName: string; // Updated to camelCase
+  title: string;
+  creatorName: string;
   category: string;
-  creatorAvatar: string; // Updated to camelCase
-  completedCount: number; // Updated to camelCase
+  creatorAvatar: string;
+  completedCount: number;
   quantity: number;
-  reward: string; // Decimal comes as string from JSON often, but we handle it
+  reward: string;
   type: 'user' | 'admin';
   link: string;
 }
@@ -22,11 +23,10 @@ export default function TasksScreen({ user }: TasksScreenProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // Track status of each task verification individually
+  // Tasks ka verification status track karne ke liye
   const [verifyingTasks, setVerifyingTasks] = useState<{ [key: number]: 'idle' | 'waiting' | 'ready' | 'verifying' }>({});
 
   useEffect(() => {
-    // Only fetch if we have user ID (using 'telegramId' now as per Prisma model)
     if (user?.telegramId) {
       fetchTasks();
     }
@@ -34,7 +34,8 @@ export default function TasksScreen({ user }: TasksScreenProps) {
 
   const fetchTasks = async () => {
     try {
-      const res = await fetch(`/api/tasks?userId=${user.id}`); // Sending internal ID is safer for relations
+      // FIX: Yahan hum Telegram ID bhej rahe hain taaki API sahi user dhoond sake
+      const res = await fetch(`/api/tasks?userId=${user.telegramId}`); 
       const data = await res.json();
       
       if (data.tasks) {
@@ -50,10 +51,9 @@ export default function TasksScreen({ user }: TasksScreenProps) {
   const handleOpenTask = (taskId: number, link: string) => {
     window.open(link, '_blank');
     
-    // Set state to 'waiting' (timer starts)
+    // Timer start karo (10 seconds)
     setVerifyingTasks(prev => ({ ...prev, [taskId]: 'waiting' }));
 
-    // After 10 seconds, allow verification
     setTimeout(() => {
       setVerifyingTasks(prev => ({ ...prev, [taskId]: 'ready' }));
     }, 10000);
@@ -67,8 +67,8 @@ export default function TasksScreen({ user }: TasksScreenProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: user.id, // Internal ID
-          telegramId: user.telegramId.toString(), // For clearing Redis cache
+          userId: user.id, // Internal ID database ke liye
+          telegramId: user.telegramId.toString(),
           taskId: taskId,
           reward: Number(reward)
         })
@@ -77,18 +77,22 @@ export default function TasksScreen({ user }: TasksScreenProps) {
       const data = await res.json();
 
       if (data.success) {
-        // Remove task from list immediately
+        // INSTANT REMOVE: Task ko list se turant hata do
         setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
         
-        // Optional: Show success toast/alert
-        // alert(`Task Verified! You earned ${reward} Points.`);
+        // State clean karo
+        setVerifyingTasks(prev => {
+           const newState = { ...prev };
+           delete newState[taskId];
+           return newState;
+        });
+
       } else {
-        alert(data.error || 'Verification Failed. Please try again.');
+        alert(data.error || 'Verification Failed.');
         setVerifyingTasks(prev => ({ ...prev, [taskId]: 'ready' }));
       }
     } catch (error) {
       console.error(error);
-      alert('Network error. Check connection.');
       setVerifyingTasks(prev => ({ ...prev, [taskId]: 'ready' }));
     }
   };
@@ -105,38 +109,38 @@ export default function TasksScreen({ user }: TasksScreenProps) {
   }
 
   return (
-    <div className="px-4 py-6 space-y-4">
+    <div className="px-4 py-6 space-y-4 pb-24">
       {/* Tabs */}
-      <div className="flex gap-2 bg-muted p-1 rounded-lg sticky top-0 z-10">
+      <div className="flex gap-2 bg-muted p-1 rounded-lg sticky top-0 z-10 shadow-sm">
         <button
           onClick={() => setActiveTab('user')}
-          className={`flex-1 py-2 rounded-lg font-semibold transition text-sm ${
+          className={`flex-1 py-2 rounded-lg font-semibold transition text-sm flex items-center justify-center gap-2 ${
             activeTab === 'user'
-              ? 'bg-card shadow-sm text-foreground'
+              ? 'bg-white text-blue-600 shadow-sm'
               : 'text-muted-foreground hover:text-foreground'
           }`}
         >
-          User Tasks
+          <User className="w-4 h-4" /> User Tasks
         </button>
         <button
           onClick={() => setActiveTab('admin')}
-          className={`flex-1 py-2 rounded-lg font-semibold transition text-sm ${
+          className={`flex-1 py-2 rounded-lg font-semibold transition text-sm flex items-center justify-center gap-2 ${
             activeTab === 'admin'
-              ? 'bg-card shadow-sm text-foreground'
+              ? 'bg-white text-blue-600 shadow-sm'
               : 'text-muted-foreground hover:text-foreground'
           }`}
         >
-          Admin Tasks
+          <ShieldCheck className="w-4 h-4" /> Admin Tasks
         </button>
       </div>
 
       {/* Task List */}
-      <div className="space-y-3 pb-4">
+      <div className="space-y-3">
         {filteredTasks.length === 0 ? (
           <div className="text-center py-10 flex flex-col items-center gap-2 text-muted-foreground">
-            <CheckCircle className="w-10 h-10 opacity-20" />
-            <p>No tasks available right now.</p>
-            <p className="text-xs">Come back later for more!</p>
+            <CheckCircle className="w-12 h-12 opacity-10" />
+            <p className="font-medium">No tasks available</p>
+            <p className="text-xs">You have completed all tasks in this category!</p>
           </div>
         ) : (
           filteredTasks.map((task) => {
@@ -146,72 +150,75 @@ export default function TasksScreen({ user }: TasksScreenProps) {
             return (
               <div
                 key={task.id}
-                className="bg-card border border-border rounded-xl p-4 space-y-3 shadow-sm hover:shadow-md transition duration-200"
+                className="bg-card border border-border rounded-xl p-4 space-y-3 shadow-sm"
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={task.creatorAvatar || "https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png"}
-                      alt="Avatar"
-                      className="w-10 h-10 rounded-full object-cover bg-gray-200"
-                      onError={(e) => { (e.target as HTMLImageElement).src = "https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png" }}
-                    />
-                    <div>
-                      <p className="font-bold text-sm line-clamp-1">{task.creatorName || 'Official Task'}</p>
-                      <p className="text-[10px] font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-md inline-block mt-0.5">
-                        {task.category || 'General'}
-                      </p>
+                <div className="flex items-center gap-3">
+                  <img
+                    src={task.creatorAvatar || "https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png"}
+                    alt="Avatar"
+                    className="w-10 h-10 rounded-full object-cover border border-border"
+                    onError={(e) => { (e.target as HTMLImageElement).src = "https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png" }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-sm truncate">{task.title || task.creatorName}</h3>
+                    <div className="flex items-center gap-2 mt-0.5">
+                       <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded font-medium">
+                         {task.category}
+                       </span>
+                       <span className="text-[10px] text-muted-foreground">
+                         by {task.creatorName}
+                       </span>
                     </div>
+                  </div>
+                  <div className="text-right">
+                     <span className="block font-bold text-green-600">+{Number(task.reward)} P</span>
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Progress</span>
+                {/* Progress Bar */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
+                    <span>Slots</span>
                     <span>{task.completedCount}/{task.quantity}</span>
                   </div>
                   <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-blue-500 rounded-full transition-all duration-500"
+                      className="h-full bg-blue-500 rounded-full"
                       style={{ width: `${progress}%` }}
                     />
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground font-medium">Reward</span>
-                  <span className="font-bold text-green-600 dark:text-green-400">+{Number(task.reward)} Points</span>
-                </div>
-
+                {/* Action Buttons */}
                 <div className="flex gap-2 pt-1">
                   <button 
                     onClick={() => handleOpenTask(task.id, task.link)}
-                    className="flex-1 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2 active:scale-95"
+                    className="flex-1 py-2 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition flex items-center justify-center gap-2 active:scale-95"
                   >
-                    <ExternalLink className="w-4 h-4" />
-                    Open
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    OPEN
                   </button>
                   
                   <button 
                     onClick={() => handleVerifyTask(task.id, task.reward)}
                     disabled={status !== 'ready'}
-                    className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2 ${
+                    className={`flex-1 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 ${
                       status === 'ready'
-                        ? 'bg-green-600 text-white hover:bg-green-700 shadow-md shadow-green-500/20 active:scale-95'
+                        ? 'bg-green-600 text-white hover:bg-green-700 shadow-sm active:scale-95'
                         : 'bg-muted text-muted-foreground cursor-not-allowed'
                     }`}
                   >
                     {status === 'waiting' ? (
                       <>
-                        <Clock className="w-4 h-4 animate-pulse" />
-                        <span className="animate-pulse">Wait...</span>
+                        <Clock className="w-3.5 h-3.5 animate-pulse" />
+                        WAIT 10s
                       </>
                     ) : status === 'verifying' ? (
-                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                      <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
                     ) : (
                       <>
-                        <CheckCircle className="w-4 h-4" />
-                        Verify
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        CLAIM
                       </>
                     )}
                   </button>
