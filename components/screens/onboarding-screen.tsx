@@ -51,13 +51,11 @@ export default function OnboardingScreen({ user, rewardAmount, onComplete }: Onb
     setIsClaiming(true);
 
     try {
-      // API call updated for new backend structure
       const response = await fetch('/api/onboarding', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          // Use telegramId property if available, fallback to id
-          telegramId: user?.telegramId || user?.id, 
+          telegramId: user?.id || user?.telegramId,
           twitterLink: link
         })
       });
@@ -86,6 +84,7 @@ export default function OnboardingScreen({ user, rewardAmount, onComplete }: Onb
         .progress-segment.active { background-color: #ffffff; box-shadow: 0 0 10px rgba(255, 255, 255, 0.6); }
         .page-container { width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; position: relative; z-index: 10; animation: fadeIn 0.5s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-15px); } 100% { transform: translateY(0px); } }
         
         .icon-p1 { font-size: 80px; margin-bottom: 20px; display: inline-block; filter: drop-shadow(0 0 20px rgba(255,255,255,0.1)); }
         
@@ -95,7 +94,7 @@ export default function OnboardingScreen({ user, rewardAmount, onComplete }: Onb
         .btn-verify { background: rgba(255, 255, 255, 0.08); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); box-shadow: none; }
         .btn-verify.enabled { background: rgba(255, 255, 255, 0.15); border-color: rgba(255, 255, 255, 0.4); }
         
-        .error-pill { position: absolute; top: 60px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 380px; background: #ef4444; border: 1px solid #ff7777; color: #ffffff; padding: 14px 16px; border-radius: 16px; font-size: 13px; font-weight: 500; display: flex; align-items: center; justify-content: flex-start; gap: 12px; box-shadow: 0 10px 30px rgba(239, 68, 68, 0.4); z-index: 100; text-align: left; line-height: 1.4; transition: all 0.3s ease; }
+        .error-pill { position: absolute; top: 70px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 380px; background: #ef4444; border: 1px solid #ff7777; color: #ffffff; padding: 12px 16px; border-radius: 12px; font-size: 13px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 10px 30px rgba(239, 68, 68, 0.4); z-index: 100; text-align: left; line-height: 1.4; transition: all 0.3s ease; }
         
         .input-box { width: 100%; max-width: 340px; padding: 18px; background: #151a24; border: 1px solid #2d3442; border-radius: 14px; color: white; font-size: 16px; outline: none; margin-bottom: 24px; transition: 0.3s; }
         .input-box:focus { border-color: #3b82f6; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15); background: #1a202c; }
@@ -104,7 +103,7 @@ export default function OnboardingScreen({ user, rewardAmount, onComplete }: Onb
         .btn-continue { background: #3b82f6; color: white; box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4); margin-top: 10px; }
         .btn-continue:hover { background: #2563eb; }
         
-        .coin-wrapper { margin-bottom: 30px; filter: drop-shadow(0 0 35px rgba(255, 215, 0, 0.4)); }
+        .coin-wrapper { margin-bottom: 30px; filter: drop-shadow(0 0 35px rgba(255, 215, 0, 0.4)); animation: float 3s ease-in-out infinite; }
         .btn-gradient { background: linear-gradient(90deg, #4ade80, #facc15, #f472b6, #a855f7); background-size: 200% 200%; color: #1a1a1a; font-weight: 800; font-size: 18px; box-shadow: 0 10px 30px rgba(236, 72, 153, 0.3); }
       `}</style>
 
@@ -118,9 +117,7 @@ export default function OnboardingScreen({ user, rewardAmount, onComplete }: Onb
 
       {error && (
         <div className="error-pill animate-in slide-in-from-top-2 fade-in duration-300">
-           <div className="bg-black/20 p-1.5 rounded-full shrink-0">
-             <AlertTriangle size={18} fill="currentColor" className="text-white"/>
-           </div>
+           <AlertTriangle size={20} className="shrink-0 text-white" />
            <span>Please enter a valid profile link starting with https://x.com/ or https://twitter.com/</span>
         </div>
       )}
@@ -161,6 +158,7 @@ export default function OnboardingScreen({ user, rewardAmount, onComplete }: Onb
             value={link}
             onChange={(e) => {
                 setLink(e.target.value);
+                if(error) setError(false);
             }}
           />
           
@@ -176,7 +174,6 @@ export default function OnboardingScreen({ user, rewardAmount, onComplete }: Onb
             <svg width="140" height="140" viewBox="0 0 100 100" fill="none">
                 <circle cx="50" cy="50" r="48" fill="url(#goldGradient)" stroke="#FCD34D" strokeWidth="2"/>
                 <circle cx="50" cy="50" r="40" stroke="#B45309" strokeWidth="2" strokeOpacity="0.2"/>
-                <text x="50" y="62" fontSize="35" fontWeight="bold" fill="#B45309" textAnchor="middle" fillOpacity="0.6">P</text>
                 <defs>
                     <linearGradient id="goldGradient" x1="10" y1="10" x2="90" y2="90" gradientUnits="userSpaceOnUse">
                         <stop offset="0%" stopColor="#FCD34D"/>

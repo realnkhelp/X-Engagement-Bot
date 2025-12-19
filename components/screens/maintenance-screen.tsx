@@ -42,67 +42,79 @@ export default function MaintenanceScreen({ maintenanceDate, maintenanceMessage,
   }, [maintenanceDate]);
 
   return (
-    <div className={`min-h-screen w-full flex items-center justify-center p-5 ${isFinished ? 'bg-green-700' : 'bg-[#34495e]'} transition-colors`}>
+    <div className={`min-h-screen w-full flex items-center justify-center p-5 bg-[#34495e] transition-colors`}>
       <style jsx global>{`
         .maintenance-container {
             background-color: #2c3e50; 
-            padding: 30px 30px; 
-            border-radius: 10px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+            padding: 40px 30px; 
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
             max-width: 90%; 
             width: 400px; 
-            border: 2px solid white; 
+            border: 1px solid rgba(255,255,255,0.1); 
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         .icon {
             color: #63b5e4; 
-            font-size: 70px;
-            margin-bottom: 15px;
-            display: block;
+            font-size: 60px;
+            margin-bottom: 20px;
+            display: inline-block;
         }
         .title {
             color: #ffffff;
-            font-size: 26px;
+            font-size: 24px;
+            font-weight: bold;
             margin-bottom: 15px;
             text-transform: uppercase;
+            white-space: nowrap;
+            letter-spacing: 1px;
         }
         .description {
             color: #bdc3c7;
-            font-size: 16px;
-            margin-bottom: 20px;
-            line-height: 1.4;
+            font-size: 15px;
+            margin-bottom: 25px;
+            line-height: 1.5;
+            width: 100%;
         }
         .completion-label {
             color: #f39c12; 
             font-weight: bold; 
-            font-size: 15px;
-            margin-bottom: 10px;
+            font-size: 14px;
+            margin-bottom: 15px;
+            text-align: center;
+            width: 100%;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         .countdown {
             display: flex;
-            justify-content: space-between; 
-            gap: 10px; 
+            justify-content: center; 
+            gap: 12px; 
+            width: 100%;
         }
         .countdown-item {
             display: flex;
             flex-direction: column;
+            align-items: center;
             background-color: #34495e; 
             padding: 10px 5px;
-            border-radius: 5px;
-            min-width: 65px; 
-            flex-grow: 1; 
+            border-radius: 6px;
+            min-width: 60px; 
             border-bottom: 3px solid #f39c12; 
-            box-sizing: border-box; 
         }
         .countdown-number {
-            font-size: 26px;
+            font-size: 24px;
             font-weight: bold;
             color: #ffffff;
-            line-height: 1.1;
+            line-height: 1;
         }
         .countdown-label {
-            font-size: 13px;
+            font-size: 11px;
             color: #bdc3c7;
-            text-transform: capitalize; 
+            text-transform: uppercase; 
             margin-top: 5px;
         }
       `}</style>
@@ -114,7 +126,7 @@ export default function MaintenanceScreen({ maintenanceDate, maintenanceMessage,
         </span> 
 
         <h1 className="title">
-          {isFinished ? 'सिस्टम अब ऑनलाइन है!' : 'SYSTEM MAINTENANCE'}
+          {isFinished ? 'SYSTEM ONLINE' : 'SYSTEM MAINTENANCE'}
         </h1>
 
         <p className="description">
@@ -124,30 +136,30 @@ export default function MaintenanceScreen({ maintenanceDate, maintenanceMessage,
         {!isFinished ? (
           <>
             <p className="completion-label">
-              Expected Completion Time:
+              Expected Completion Time
             </p>
             
             <div className="countdown">
               <div className="countdown-item">
-                <span id="days" className="countdown-number">{formatNumber(timeLeft.days)}</span>
+                <span className="countdown-number">{formatNumber(timeLeft.days)}</span>
                 <span className="countdown-label">Days</span>
               </div>
               <div className="countdown-item">
-                <span id="hours" className="countdown-number">{formatNumber(timeLeft.hours)}</span>
+                <span className="countdown-number">{formatNumber(timeLeft.hours)}</span>
                 <span className="countdown-label">Hours</span>
               </div>
               <div className="countdown-item">
-                <span id="minutes" className="countdown-number">{formatNumber(timeLeft.minutes)}</span>
+                <span className="countdown-number">{formatNumber(timeLeft.minutes)}</span>
                 <span className="countdown-label">Min</span>
               </div>
               <div className="countdown-item">
-                <span id="seconds" className="countdown-number">{formatNumber(timeLeft.seconds)}</span>
+                <span className="countdown-number">{formatNumber(timeLeft.seconds)}</span>
                 <span className="countdown-label">Sec</span>
               </div>
             </div>
           </>
         ) : (
-          <div className="mt-6 text-xl font-bold text-[#2ecc71]">You can use the app now!</div>
+          <div className="mt-6 text-lg font-bold text-[#2ecc71]">Please refresh the page.</div>
         )}
       </div>
     </div>

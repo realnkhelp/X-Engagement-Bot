@@ -3,7 +3,7 @@ import { prisma } from '@/lib/db';
 
 export async function GET() {
   try {
-    const [settings, assets, rates, banners, support] = await Promise.all([
+    let [settings, assets, rates, banners, support] = await Promise.all([
       prisma.settings.findFirst(),
       prisma.asset.findMany(),
       prisma.taskRate.findMany(),
@@ -11,7 +11,19 @@ export async function GET() {
       prisma.supportLink.findMany()
     ]);
 
-    // Map Prisma results to match frontend expectations
+    if (!settings) {
+      settings = await prisma.settings.create({
+        data: {
+          telegramChannel: '',
+          maintenanceMode: false,
+          maintenanceMessage: 'System under maintenance',
+          maintenanceDate: new Date().toISOString(),
+          onboardingBonus: 0,
+          pointCurrencyName: 'Points'
+        }
+      });
+    }
+
     const formattedAssets = assets.map(a => ({
       id: a.id,
       name: a.name,
@@ -21,7 +33,7 @@ export async function GET() {
 
     return NextResponse.json({ 
       success: true, 
-      settings: settings || {},
+      settings: settings,
       currencies: formattedAssets,
       taskRates: rates,
       banners: banners,
@@ -41,7 +53,6 @@ export async function POST(req: Request) {
       if (type === 'general') {
         const { telegramLink, maintenanceMode, maintenanceMessage, maintenanceDate, onboardingBonus, pointCurrencyName } = body;
         
-        // Upsert settings (update if exists, create if not)
         const existingSettings = await prisma.settings.findFirst();
         
         if (existingSettings) {
@@ -52,7 +63,7 @@ export async function POST(req: Request) {
               maintenanceMode: maintenanceMode,
               maintenanceMessage: maintenanceMessage,
               maintenanceDate: maintenanceDate,
-              onboardingBonus: onboardingBonus,
+              onboardingBonus: parseFloat(onboardingBonus || '0'),
               pointCurrencyName: pointCurrencyName
             }
           });
@@ -63,7 +74,7 @@ export async function POST(req: Request) {
               maintenanceMode: maintenanceMode,
               maintenanceMessage: maintenanceMessage,
               maintenanceDate: maintenanceDate,
-              onboardingBonus: onboardingBonus,
+              onboardingBonus: parseFloat(onboardingBonus || '0'),
               pointCurrencyName: pointCurrencyName
             }
           });
@@ -90,8 +101,8 @@ export async function POST(req: Request) {
           data: {
             category: body.category,
             name: body.name,
-            price: body.price,
-            points: body.points
+            price: parseFloat(body.price),
+            points: parseFloat(body.points)
           }
         });
       }
@@ -128,7 +139,6 @@ export async function POST(req: Request) {
 
       return NextResponse.json({ success: true });
     } catch (err) {
-      console.error(err);
       return NextResponse.json({ error: 'Operation Failed' }, { status: 500 });
     }
   } catch (error) {
