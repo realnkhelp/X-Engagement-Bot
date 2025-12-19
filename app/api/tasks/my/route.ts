@@ -23,8 +23,9 @@ export async function GET(req: Request) {
       }
     });
 
+    // Fix: BigInt ko String mein badlo
     const formattedTasks = tasks.map((task) => ({
-      id: task.id,
+      id: task.id.toString(), // <-- YEH HAI ASLI FIX
       categoryId: task.categoryId,
       completedCount: task.completedCount,
       quantity: task.quantity,
@@ -41,6 +42,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ success: true, tasks: formattedTasks });
 
   } catch (error) {
+    console.error("My Tasks Error:", error);
     return NextResponse.json({ error: 'Server Error' }, { status: 500 });
   }
 }
