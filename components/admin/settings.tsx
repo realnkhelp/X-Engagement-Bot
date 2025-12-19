@@ -71,14 +71,14 @@ export default function AdminSettings() {
       const data = await res.json();
       if (data.success) {
         setSettings({
-          telegramLink: data.settings.telegram_channel || '',
-          maintenanceMode: data.settings.maintenance_mode === 1,
-          maintenanceDate: data.settings.maintenance_date || '',
-          maintenanceMessage: data.settings.maintenance_message || '',
+          telegramLink: data.settings.telegramChannel || '',
+          maintenanceMode: data.settings.maintenanceMode,
+          maintenanceDate: data.settings.maintenanceDate || '',
+          maintenanceMessage: data.settings.maintenanceMessage || '',
         });
         setOnboarding({
-          bonusAmount: data.settings.onboarding_bonus || 0,
-          currencyName: data.settings.point_currency_name || 'Points'
+          bonusAmount: data.settings.onboardingBonus || 0,
+          currencyName: data.settings.pointCurrencyName || 'Points'
         });
         setCurrencies(data.currencies || []);
         setTaskRates(data.taskRates || []);
@@ -102,8 +102,8 @@ export default function AdminSettings() {
           maintenanceMode: settings.maintenanceMode,
           maintenanceMessage: settings.maintenanceMessage,
           maintenanceDate: settings.maintenanceDate,
-          onboarding_bonus: onboarding.bonusAmount,
-          point_currency_name: onboarding.currencyName
+          onboardingBonus: onboarding.bonusAmount,
+          pointCurrencyName: onboarding.currencyName
         })
       });
       alert('Settings saved successfully!');
@@ -182,8 +182,7 @@ export default function AdminSettings() {
     if (!newBannerUrl) return;
     
     if (editingBannerId) {
-      // Logic for editing if needed in backend, currently only Add/Delete supported in simple API
-      // You would need to add 'update_banner' type in backend
+      // Logic for editing if needed in backend
       alert("Edit feature requires backend update, adding as new for now or implement update API");
       setEditingBannerId(null);
       setNewBannerUrl('');
