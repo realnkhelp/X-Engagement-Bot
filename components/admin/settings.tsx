@@ -31,6 +31,7 @@ interface TaskRate {
 
 export default function AdminSettings() {
   const [loading, setLoading] = useState(false);
+  // Default values taaki crash na ho
   const [settings, setSettings] = useState({
     telegramLink: '',
     maintenanceMode: false,
@@ -69,30 +70,39 @@ export default function AdminSettings() {
     try {
       const res = await fetch('/api/admin/settings');
       const data = await res.json();
-      if (data.success) {
+      
+      // CRASH FIX: Check karo ki settings exist karti hai ya nahi
+      if (data.success && data.settings) {
         setSettings({
           telegramLink: data.settings.telegramChannel || '',
-          maintenanceMode: data.settings.maintenanceMode,
-          maintenanceDate: data.settings.maintenanceDate || '',
+          maintenanceMode: data.settings.maintenanceMode || false, // Default false
+          // DATE FIX: Date ko sahi format mein badlo (YYYY-MM-DDTHH:mm)
+          maintenanceDate: data.settings.maintenanceDate ? new Date(data.settings.maintenanceDate).toISOString().slice(0, 16) : '',
           maintenanceMessage: data.settings.maintenanceMessage || '',
         });
+
         setOnboarding({
           bonusAmount: data.settings.onboardingBonus || 0,
           currencyName: data.settings.pointCurrencyName || 'Points'
         });
-        setCurrencies(data.currencies || []);
-        setTaskRates(data.taskRates || []);
-        setBanners(data.banners || []);
-        setSupportLinks(data.supportLinks || []);
       }
+
+      setCurrencies(data.currencies || []);
+      setTaskRates(data.taskRates || []);
+      setBanners(data.banners || []);
+      setSupportLinks(data.supportLinks || []);
+      
     } catch (error) {
-      console.error(error);
+      console.error("Error fetching settings:", error);
     }
   };
 
   const saveGeneralSettings = async () => {
     setLoading(true);
     try {
+      // DATE FIX: Agar date empty hai, to abhi ka time bhejo taaki crash na ho
+      const safeDate = settings.maintenanceDate ? new Date(settings.maintenanceDate).toISOString() : new Date().toISOString();
+
       await fetch('/api/admin/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -101,7 +111,7 @@ export default function AdminSettings() {
           telegramLink: settings.telegramLink,
           maintenanceMode: settings.maintenanceMode,
           maintenanceMessage: settings.maintenanceMessage,
-          maintenanceDate: settings.maintenanceDate,
+          maintenanceDate: safeDate,
           onboardingBonus: onboarding.bonusAmount,
           pointCurrencyName: onboarding.currencyName
         })
@@ -180,10 +190,8 @@ export default function AdminSettings() {
 
   const handleBannerSubmit = async () => {
     if (!newBannerUrl) return;
-    
     if (editingBannerId) {
-      // Logic for editing if needed in backend
-      alert("Edit feature requires backend update, adding as new for now or implement update API");
+      alert("Edit feature requires backend update, adding as new for now.");
       setEditingBannerId(null);
       setNewBannerUrl('');
       return;
@@ -270,6 +278,7 @@ export default function AdminSettings() {
         </button>
       </div>
 
+      {/* --- Wallet Currencies --- */}
       <div className="bg-card border border-border rounded-xl p-6 space-y-6 shadow-sm">
         <h2 className="text-lg font-bold border-b border-border pb-2 flex items-center gap-2">
           <Wallet className="w-5 h-5 text-blue-500" />
@@ -334,6 +343,7 @@ export default function AdminSettings() {
         </div>
       </div>
 
+      {/* --- Onboarding Bonus --- */}
       <div className="bg-card border border-border rounded-xl p-6 space-y-6 shadow-sm">
         <h2 className="text-lg font-bold border-b border-border pb-2 flex items-center gap-2">
           <Gift className="w-5 h-5 text-pink-500" />
@@ -365,6 +375,7 @@ export default function AdminSettings() {
         </div>
       </div>
 
+      {/* --- Task Pricing --- */}
       <div className="bg-card border border-border rounded-xl p-6 space-y-6 shadow-sm">
         <h2 className="text-lg font-bold border-b border-border pb-2 flex items-center gap-2">
           <Coins className="w-5 h-5 text-yellow-500" />
@@ -478,6 +489,7 @@ export default function AdminSettings() {
         </div>
       </div>
 
+      {/* --- Slide Banners --- */}
       <div className="bg-card border border-border rounded-xl p-6 space-y-6 shadow-sm">
         <h2 className="text-lg font-bold border-b border-border pb-2">Slide Banners</h2>
         
@@ -534,6 +546,7 @@ export default function AdminSettings() {
         </div>
       </div>
 
+      {/* --- Support Links --- */}
       <div className="bg-card border border-border rounded-xl p-6 space-y-6 shadow-sm">
         <h2 className="text-lg font-bold border-b border-border pb-2">Support & Community Links</h2>
         
@@ -589,6 +602,7 @@ export default function AdminSettings() {
         </div>
       </div>
 
+      {/* --- Maintenance Mode --- */}
       <div className="bg-card border border-border rounded-xl p-6 space-y-6 shadow-sm">
         <div className="flex items-center justify-between border-b border-border pb-2">
           <h2 className="text-lg font-bold flex items-center gap-2">
