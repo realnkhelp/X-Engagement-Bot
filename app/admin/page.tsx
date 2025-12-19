@@ -1,19 +1,20 @@
 'use client';
 
 import { useState } from 'react';
-import { Menu, Lock, User } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import Sidebar from '@/components/layout/sidebar';
 import AdminDashboard from '@/components/admin/dashboard';
-// NOTE: Comment out components that are not created yet to avoid build errors
+import AdminSettings from '@/components/admin/settings';
 import AdminUsers from '@/components/admin/users';
 import AdminTasks from '@/components/admin/tasks';
 import AdminDepositHistory from '@/components/admin/deposit-history';
-// import AdminPayments from '@/components/admin/payments';
-// import AdminRules from '@/components/admin/rules';
-// import AdminAnnouncement from '@/components/admin/announcement';
-// import AdminReports from '@/components/admin/reports';
-// import AdminManageAdmins from '@/components/admin/manage-admins';
-// import AdminSettings from '@/components/admin/settings';
+
+// ✅ Naye Imports (Aapki file names ke hisab se corrected)
+import AdminPayments from '@/components/admin/payments';
+import AdminRules from '@/components/admin/rules';
+import AdminAnnouncements from '@/components/admin/announcement'; // <-- Yahan 's' hata diya hai
+import AdminReports from '@/components/admin/reports';
+import AdminManageAdmins from '@/components/admin/manage-admins';
 
 export default function AdminPanel() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -28,16 +29,27 @@ export default function AdminPanel() {
     e.preventDefault();
     setLoading(true);
 
-    // TODO: Replace with real API call later
-    // Hardcoded for development: admin / admin123
-    if (usernameInput === 'admin' && passwordInput === 'admin123') {
-       setTimeout(() => {
-           setIsAuthenticated(true);
-           setLoading(false);
-       }, 800);
-    } else {
-       alert('Invalid Username or Password');
-       setLoading(false);
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: usernameInput,
+          password: passwordInput
+        })
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+         setIsAuthenticated(true);
+      } else {
+         alert(data.error || 'Invalid Username or Password');
+      }
+    } catch (error) {
+      alert('Login Failed: Server Error');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -45,72 +57,86 @@ export default function AdminPanel() {
     switch (activeTab) {
       case 'dashboard':
         return <AdminDashboard onNavigate={setActiveTab} />;
+      
       case 'users':
-        return <AdminUsers />; // Ensure this component exists
+        return <AdminUsers />;
+      
       case 'tasks':
-        return <AdminTasks />; // Ensure this component exists
+        return <AdminTasks />;
+      
       case 'deposit-history':
-        return <AdminDepositHistory />; // Ensure this component exists
-      // Add other cases back as you create the files
+        return <AdminDepositHistory />;
+      
+      case 'payments':
+        return <AdminPayments />;
+      
+      case 'rules':
+        return <AdminRules />;
+      
+      case 'announcements':
+        return <AdminAnnouncements />;
+      
+      case 'reports':
+      case 'report-history':
+        return <AdminReports />;
+      
+      case 'admins':
+      case 'manage-admins':
+        return <AdminManageAdmins />;
+        
+      case 'settings':
+        return <AdminSettings />;
+      
       default:
-        return <div className="p-10 text-center">Module Coming Soon</div>;
+        return <div className="p-10 text-center">Module Coming Soon ({activeTab})</div>;
     }
   };
 
   const user = {
-    firstName: 'Nitesh',
-    username: 'admin_nitesh',
+    firstName: 'Admin',
+    username: 'super_admin',
     avatar: '' 
   };
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-purple-100 p-4">
-        <div className="bg-white w-full max-w-md p-8 rounded-2xl shadow-xl border border-gray-100 animate-in fade-in zoom-in duration-300">
+      <div className="min-h-screen w-full flex items-center justify-center bg-gray-100 p-4">
+        <div className="bg-white w-full max-w-md p-8 rounded-lg shadow-lg border border-gray-200">
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold text-gray-800">Admin Login</h1>
-            <p className="text-gray-500 text-sm mt-2">Sign in to manage your platform</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">Username</label>
-              <div className="relative">
-                <User className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-                <input 
-                  type="text" 
-                  value={usernameInput}
-                  onChange={(e) => setUsernameInput(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition bg-gray-50 focus:bg-white"
-                  placeholder="Enter Username"
-                  required
-                />
-              </div>
+              <input 
+                type="text" 
+                value={usernameInput}
+                onChange={(e) => setUsernameInput(e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter Username"
+                required
+              />
             </div>
 
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-                <input 
-                  type="password" 
-                  value={passwordInput}
-                  onChange={(e) => setPasswordInput(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition bg-gray-50 focus:bg-white"
-                  placeholder="Enter Password"
-                  required
-                />
-              </div>
+              <input 
+                type="password" 
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter Password"
+                required
+              />
             </div>
 
             <button 
               type="submit" 
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition shadow-lg shadow-blue-500/30 active:scale-95 flex items-center justify-center"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition"
             >
-              {loading ? (
-                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              ) : "Sign In"}
+              {loading ? "Checking..." : "Sign In"}
             </button>
           </form>
         </div>
@@ -119,9 +145,8 @@ export default function AdminPanel() {
   }
 
   return (
-    <div className="flex h-screen w-full bg-background text-foreground overflow-hidden">
-      {/* Desktop Sidebar */}
-      <div className="hidden md:flex flex-shrink-0 h-full w-64 border-r border-border bg-card">
+    <div className="flex h-screen w-full bg-white text-gray-900 overflow-hidden">
+      <div className="hidden md:flex flex-shrink-0 h-full w-64 border-r border-gray-200 bg-white">
         <Sidebar 
           user={user} 
           activeTab={activeTab} 
@@ -129,10 +154,9 @@ export default function AdminPanel() {
         />
       </div>
 
-      {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
         <div className="fixed inset-0 z-50 flex md:hidden">
-          <div className="relative w-64 h-full bg-card shadow-2xl flex flex-col animate-in slide-in-from-left duration-200">
+          <div className="relative w-64 h-full bg-white shadow-xl flex flex-col">
             <Sidebar 
               user={user} 
               activeTab={activeTab} 
@@ -143,27 +167,24 @@ export default function AdminPanel() {
               onClose={() => setIsSidebarOpen(false)} 
             />
           </div>
-          <div className="flex-1 bg-black/50 backdrop-blur-sm" onClick={() => setIsSidebarOpen(false)} />
+          <div className="flex-1 bg-black/50" onClick={() => setIsSidebarOpen(false)} />
         </div>
       )}
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden bg-muted/10 relative w-full">
-        {/* Mobile Header */}
-        <div className="md:hidden flex items-center justify-between p-4 bg-card border-b border-border shadow-sm flex-shrink-0 sticky top-0 z-20">
+      <div className="flex-1 flex flex-col h-full overflow-hidden bg-gray-50 relative w-full">
+        <div className="md:hidden flex items-center justify-between p-4 bg-white border-b border-gray-200 shadow-sm flex-shrink-0 sticky top-0 z-20">
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setIsSidebarOpen(true)}
-              className="p-2 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100 active:scale-95 transition"
+              className="p-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition"
             >
               <Menu className="w-6 h-6" />
             </button>
-            <span className="font-bold text-lg text-foreground">Admin Panel</span>
+            <span className="font-bold text-lg text-gray-900">Admin Panel</span>
           </div>
         </div>
 
-        {/* Dynamic Content */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-8 pb-24 scroll-smooth">
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 pb-24">
           {renderContent()}
         </div>
       </div>
