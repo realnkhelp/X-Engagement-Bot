@@ -33,12 +33,12 @@ export async function POST(req: Request) {
         });
       }
 
-      // Update the transaction status
+      // Update the transaction status & reason
       await tx.transaction.update({
         where: { id: parseInt(transactionId) },
         data: {
           status: status,
-          reason: reason || null
+          reason: reason || null // Agar reason hai to save karo, nahi to null
         }
       });
     });

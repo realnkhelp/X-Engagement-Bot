@@ -46,7 +46,6 @@ export default function AdminDepositHistory() {
       if (data.success) {
         const formattedDeposits = data.deposits.map((d: any) => ({
           id: d.id,
-          // Handle nested user object from Prisma or direct fields
           username: d.user?.username || d.user?.firstName || 'Unknown',
           amount: Number(d.amount),
           method: d.method,
@@ -205,13 +204,14 @@ export default function AdminDepositHistory() {
                 <th className="px-4 py-3">Transaction ID</th>
                 <th className="px-4 py-3">Date</th>
                 <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Reason</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border whitespace-nowrap">
               {filteredDeposits.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center p-8 text-muted-foreground">
+                  <td colSpan={8} className="text-center p-8 text-muted-foreground">
                     No deposits found.
                   </td>
                 </tr>
@@ -234,18 +234,17 @@ export default function AdminDepositHistory() {
                     <td className="px-4 py-3 text-muted-foreground">{deposit.date}</td>
                     
                     <td className="px-4 py-3">
-                      <div className="flex flex-col gap-1">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize w-fit
-                          ${deposit.status === 'Completed' ? 'bg-green-100 text-green-700' : 
-                            deposit.status === 'Rejected' ? 'bg-red-100 text-red-700' : 
-                            'bg-yellow-100 text-yellow-700'}`}>
-                          {deposit.status}
-                        </span>
-                        {deposit.status === 'Rejected' && deposit.reason && (
-                          <span className="text-[10px] text-red-500 max-w-[150px] truncate">
-                            {deposit.reason}
-                          </span>
-                        )}
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize w-fit
+                        ${deposit.status === 'Completed' ? 'bg-green-100 text-green-700' : 
+                          deposit.status === 'Rejected' ? 'bg-red-100 text-red-700' : 
+                          'bg-yellow-100 text-yellow-700'}`}>
+                        {deposit.status}
+                      </span>
+                    </td>
+
+                    <td className="px-4 py-3 text-muted-foreground">
+                      <div className="max-w-[150px] truncate" title={deposit.reason || ''}>
+                         {deposit.status === 'Rejected' ? (deposit.reason || 'No reason') : '-'}
                       </div>
                     </td>
 

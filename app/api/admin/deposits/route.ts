@@ -8,7 +8,7 @@ export async function GET() {
         type: 'Deposit'
       },
       orderBy: [
-        { status: 'asc' }, // Will sort alphabetically: Completed, Pending, Rejected. Adjust if you need specific order
+        { status: 'asc' }, 
         { createdAt: 'desc' }
       ],
       include: {
@@ -22,7 +22,7 @@ export async function GET() {
       }
     });
     
-    // Custom sort to force 'Pending' to the top if standard alpha sort isn't desired
+    // Sort: Pending sabse upar
     deposits.sort((a, b) => {
       if (a.status === 'Pending' && b.status !== 'Pending') return -1;
       if (a.status !== 'Pending' && b.status === 'Pending') return 1;
