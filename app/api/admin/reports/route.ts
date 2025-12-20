@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const reports = await prisma.report.findMany({
@@ -16,8 +18,8 @@ export async function GET() {
       orderBy: { createdAt: 'desc' }
     });
 
-    // Extract unique cheater usernames to fetch their details
     const cheaterUsernames = reports
+      .filter(r => r.cheaterUsername) 
       .map(r => r.cheaterUsername.replace('@', ''))
       .filter((v, i, a) => a.indexOf(v) === i);
 
@@ -34,7 +36,6 @@ export async function GET() {
       }
     });
 
-    // Map target user data back to reports
     const enrichedReports = reports.map(report => {
       const cleanTargetUsername = report.cheaterUsername.replace('@', '');
       const targetUser = targetUsers.find(u => u.username === cleanTargetUsername);
@@ -50,7 +51,6 @@ export async function GET() {
       };
     });
 
-    // Sort: Pending first
     enrichedReports.sort((a, b) => {
       if (a.status === 'Pending' && b.status !== 'Pending') return -1;
       if (a.status !== 'Pending' && b.status === 'Pending') return 1;
@@ -59,6 +59,7 @@ export async function GET() {
 
     return NextResponse.json({ success: true, reports: enrichedReports });
   } catch (error) {
+    console.error("Admin Report Error:", error);
     return NextResponse.json({ error: 'Server Error' }, { status: 500 });
   }
 }

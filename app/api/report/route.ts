@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 
-// POST: Create a new report
 export async function POST(req: Request) {
   try {
     const { telegramId, cheaterUsername, taskLink, cheaterProfileLink } = await req.json();
@@ -20,7 +19,7 @@ export async function POST(req: Request) {
 
     await prisma.report.create({
       data: {
-        reporterId: user.id, // Linking internal ID
+        reporterId: user.id,
         cheaterUsername: cheaterUsername,
         taskLink: taskLink || '',
         cheaterProfileLink: cheaterProfileLink || '',
@@ -32,12 +31,11 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Report Error:", error);
+    console.error("Report Create Error:", error);
     return NextResponse.json({ error: 'Server Error' }, { status: 500 });
   }
 }
 
-// GET: Fetch reports by a user
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);

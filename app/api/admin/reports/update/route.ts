@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     }
 
     await prisma.report.update({
-      where: { id: parseInt(reportId) },
+      where: { id: Number(reportId) },
       data: {
         status: status,
         reason: reason || null
