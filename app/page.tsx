@@ -49,7 +49,7 @@ export default function Page() {
       // 2. Get Telegram User Data
       let tgUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
 
-      // Testing Mode (Localhost)
+      // Testing Mode (Localhost) - Development Only
       if (!tgUser && process.env.NODE_ENV === 'development') {
         tgUser = { id: 123456789, first_name: 'Test User', username: 'tester', photo_url: null };
       }
@@ -72,10 +72,20 @@ export default function Page() {
           if (res.ok) {
             const data = await res.json();
             if (data.user) {
-              setUser(data.user);
+              // ✅ CRITICAL FIX: Safe User Object Creation
+              // Sabhi BigInt aur Decimal values ko String mein badalna zaroori hai
+              const safeUser = {
+                ...data.user,
+                telegramId: data.user.telegramId ? data.user.telegramId.toString() : tgUser.id.toString(),
+                id: data.user.id, // Internal ID (Number) safe hai
+                balance: data.user.balance ? data.user.balance.toString() : '0',
+                points: data.user.points ? data.user.points.toString() : '0'
+              };
+              
+              setUser(safeUser);
               
               // Onboarding Check
-              if (!data.user.twitterLink) {
+              if (!data.user.twitterLink || data.user.twitterLink === "") {
                 setShowOnboarding(true);
               }
             }
@@ -115,12 +125,11 @@ export default function Page() {
 
   const handleOnboardingComplete = async (profileLink: string) => {
     try {
-      // ✅ Corrected URL: /api/onboarding (matches your folder structure)
       const res = await fetch('/api/onboarding', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          telegramId: user.telegramId,
+          telegramId: user.telegramId.toString(), // Ensure string
           twitterLink: profileLink
         })
       });
@@ -131,12 +140,15 @@ export default function Page() {
         setUser((prev: any) => ({
           ...prev,
           twitterLink: profileLink,
-          points: Number(prev.points) + Number(data.addedPoints || 0)
+          points: (Number(prev.points) + Number(data.addedPoints || 0)).toString() // Keep points as string
         }));
         setShowOnboarding(false);
+      } else {
+        alert(data.error || "Something went wrong during onboarding.");
       }
     } catch (error) {
       console.error("Onboarding Error", error);
+      alert("Network error. Please try again.");
     }
   };
 
