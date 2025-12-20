@@ -6,21 +6,36 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const telegramId = searchParams.get('userId');
+    const userIdParam = searchParams.get('userId');
 
     let userInternalId = null;
-    if (telegramId) {
+
+    // 1. User Identification (Safe Logic)
+    // Ye check karega ki userId Telegram ID hai ya Database ID, taaki crash na ho
+    if (userIdParam && userIdParam !== 'undefined' && userIdParam !== 'null') {
       try {
-        const user = await prisma.user.findUnique({
-          where: { telegramId: BigInt(telegramId) },
+        // Pehle BigInt (Telegram ID) try karein
+        const user = await prisma.user.findFirst({
+          where: { telegramId: BigInt(userIdParam) },
           select: { id: true }
         });
-        if (user) userInternalId = user.id;
+        
+        if (user) {
+          userInternalId = user.id;
+        } else {
+          // Agar Telegram ID se nahi mila, to Internal ID try karein
+          const userById = await prisma.user.findUnique({
+            where: { id: Number(userIdParam) },
+            select: { id: true }
+          });
+          if (userById) userInternalId = userById.id;
+        }
       } catch (e) {
-        console.error(e);
+        console.error("User lookup error:", e);
       }
     }
 
+    // 2. Fetch Active Tasks
     const tasksFromDb = await prisma.task.findMany({
       where: {
         status: 'active',
@@ -28,19 +43,29 @@ export async function GET(req: Request) {
       orderBy: { createdAt: 'desc' },
       include: {
         creator: {
-          select: { firstName: true, username: true, avatar: true }
+          select: { firstName: true, username: true, avatar: true, telegramId: true }
         },
         completions: true
       }
     });
 
+    // 3. Filtering & Formatting
     const formattedTasks = tasksFromDb.map(task => {
-      const isCompleted = userInternalId ? task.completions.some(c => c.userId === userInternalId) : false;
+      // Check completion status
+      const isCompleted = userInternalId 
+        ? task.completions.some(c => c.userId === userInternalId) 
+        : false;
+      
       const isQuotaFull = task.completedCount >= task.quantity;
 
+      // Agar complete hai ya full hai, to mat dikhao
       if (isCompleted || isQuotaFull) {
         return null;
       }
+
+      // Determine Type (User vs Admin)
+      // Agar creatorId hai to 'user', nahi to 'admin'
+      const taskType = task.creatorId ? 'user' : 'admin';
 
       return {
         id: task.id,
@@ -54,13 +79,14 @@ export async function GET(req: Request) {
         creatorAvatar: task.creator ? task.creator.avatar : task.iconUrl,
         quantity: task.quantity,
         completedCount: task.completedCount,
-        type: task.creatorId ? 'user' : 'admin'
+        type: taskType // Frontend isko use karke tab filter karega
       };
-    }).filter(task => task !== null);
+    }).filter(task => task !== null); // Remove null items
 
     return NextResponse.json({ success: true, tasks: formattedTasks });
 
   } catch (error) {
-    return NextResponse.json({ error: 'Server Error' }, { status: 500 });
+    console.error("Tasks API Error:", error);
+    return NextResponse.json({ error: 'Server Error', tasks: [] }, { status: 500 });
   }
 }
